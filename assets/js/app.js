@@ -235,7 +235,7 @@
     const landing = $("#landingQuickNeeds");
     const studentNeeds = $("#studentNeedButtons");
     if (landing) landing.innerHTML = "";
-    studentNeeds.innerHTML = "";
+    if (studentNeeds) studentNeeds.innerHTML = "";
 
     quickNeeds.forEach((need) => {
       if (landing) {
@@ -252,6 +252,7 @@
         landing.appendChild(landingButton);
       }
 
+      if (!studentNeeds) return;
       const studentButton = document.createElement("button");
       studentButton.type = "button";
       studentButton.className = "need-chip";
@@ -265,6 +266,7 @@
   }
 
   function renderStudentSelects() {
+    if (!$("#difficultyType") || !$("#preferredSupport") || !$("#followUpDate")) return;
     const tags = (window.NDHULearningData && window.NDHULearningData.difficultyTags) || [];
     $("#difficultyType").innerHTML = tags.map((tag) => `<option value="${escapeHtml(tag)}">${escapeHtml(tag)}</option>`).join("");
     $("#preferredSupport").innerHTML = supportOptions.map((option) => `<option value="${escapeHtml(option)}">${escapeHtml(option)}</option>`).join("");
@@ -622,9 +624,24 @@
     `;
     $("#chatLog").appendChild(message);
     $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+    return message;
   }
 
-  function handleChatSubmit(event) {
+  function updateChatMessage(message, text, timestamp = new Date().toISOString(), meta = "") {
+    if (!message) return;
+    const speaker = message.classList.contains("user") ? "你" : "東東";
+    const time = isoTime(timestamp);
+    const label = [formatMessageTime(time), meta].filter(Boolean).join(" · ");
+    message.classList.remove("pending");
+    message.innerHTML = `
+      <strong>${speaker}</strong>
+      <span>${escapeHtml(text).replace(/\n/g, "<br>")}</span>
+      <time datetime="${escapeHtml(time)}">${escapeHtml(label)}</time>
+    `;
+    $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+  }
+
+  async function handleChatSubmit(event) {
     event.preventDefault();
     const input = $("#chatInput");
     const text = input.value.trim();
@@ -640,9 +657,11 @@
 
     const context = readCheckinContext();
     const analysis = analyzeLearningNeed(Object.assign({}, context, { text }));
-    const response = buildAgentResponse(analysis);
+    const pending = addChatMessage("agent", "東東正在整理你的訊息...", new Date().toISOString());
+    pending.classList.add("pending");
+    const response = await resolveAgentReply(text, analysis);
     const replyAt = new Date().toISOString();
-    addChatMessage("agent", response, replyAt);
+    updateChatMessage(pending, response.reply, replyAt, response.source === "llm" ? "AI 回覆" : "");
     updateStudentRisk(analysis);
     renderStudentRecommendation(analysis);
 
@@ -655,7 +674,8 @@
       college: user.college,
       department: user.department,
       text,
-      agentReply: response,
+      agentReply: response.reply,
+      replySource: response.source,
       inputMethod,
       analysis
     };
@@ -669,12 +689,12 @@
 
   function readCheckinContext() {
     return {
-      courseName: safeText($("#courseName").value),
-      difficultyType: safeText($("#difficultyType").value),
-      difficultyScore: Number($("#difficultyScore").value || 3),
-      attendanceStatus: safeText($("#attendanceStatus").value),
-      preferredSupport: safeText($("#preferredSupport").value),
-      followUpDate: safeText($("#followUpDate").value)
+      courseName: safeText($("#courseName") ? $("#courseName").value : ""),
+      difficultyType: safeText($("#difficultyType") ? $("#difficultyType").value : ""),
+      difficultyScore: Number(($("#difficultyScore") && $("#difficultyScore").value) || 3),
+      attendanceStatus: safeText($("#attendanceStatus") ? $("#attendanceStatus").value : ""),
+      preferredSupport: safeText($("#preferredSupport") ? $("#preferredSupport").value : ""),
+      followUpDate: safeText($("#followUpDate") ? $("#followUpDate").value : "")
     };
   }
 
@@ -719,7 +739,7 @@
 
     if (!reasons.length) {
       if (score >= 60) reasons.push("困難程度偏高，建議一週內追蹤");
-      else reasons.push("目前可先用具體步驟整理學習問題");
+      else reasons.push("可以先從一個具體問題開始整理");
     }
 
     score = Math.max(0, Math.min(100, Math.round(score)));
@@ -761,7 +781,7 @@
       ];
     }
 
-    const course = context.courseName ? `「${context.courseName}」` : "這門課";
+    const course = context.courseName ? `「${context.courseName}」` : "這次卡住的內容";
     const steps = [];
     if (tags.includes("概念理解") || tags.includes("先備知識")) {
       steps.push(`把 ${course} 最不懂的三個概念寫成問題，東東可以幫你改成問老師或助教的句子。`);
@@ -815,21 +835,74 @@
   }
 
   function summarizeNeed(context, tags, level) {
-    const course = safeText(context.courseName, "尚未指定課程");
     const issue = tags.length ? tags.join("、") : safeText(context.difficultyType, "學習困難");
-    return `${course} 目前主要需要處理：${issue}。關懷層級為 ${level}。`;
+    return context.courseName
+      ? `${context.courseName} 目前主要需要處理：${issue}。關懷層級為 ${level}。`
+      : `目前主要需要處理：${issue}。關懷層級為 ${level}。`;
   }
 
-  function buildAgentResponse(analysis) {
-    const intro = analysis.level === "立即轉介"
-      ? "我先把最重要的事放前面：你的安全比課業更優先。"
-      : "我有聽到，你現在不是沒有努力，而是事情已經卡成一團，需要有人陪你拆小。";
-    const reason = analysis.reasons.length ? `東東先抓到的重點是：${analysis.reasons.join("；")}。` : "";
-    const steps = analysis.recommendations.map((item, index) => `${index + 1}. ${item}`).join("\n");
-    return `${intro}\n${reason}\n我們先不要一次解全部，先做這幾步就好：\n${steps}\n\n我想接著問你一個小問題：${analysis.followUpQuestion}`;
+  function buildLocalAgentResponse(analysis) {
+    if (analysis.level === "立即轉介") {
+      return [
+        "我先把安全放在最前面。這已經超出一般學習整理的範圍，請立刻聯絡 119、110、校安中心或身邊可信任的人。",
+        "你可以先只回我：你現在身邊有人可以陪你嗎？"
+      ].join("\n");
+    }
+    const firstStep = analysis.recommendations[0] || "先把最卡的一句話寫下來，東東再陪你往下拆。";
+    const summary = studentFacingSummary(analysis);
+    return [
+      `我先幫你整理一下：${summary}`,
+      `現在可以先做一個小動作：${firstStep}`,
+      `你可以直接回我：${analysis.followUpQuestion}`
+    ].join("\n");
+  }
+
+  function studentFacingSummary(analysis) {
+    const raw = safeText(analysis && analysis.summary);
+    const cleaned = raw
+      .replace(/。?關懷層級為\s*[^。]+。?/g, "")
+      .replace(/^目前主要需要處理：/, "")
+      .replace(/[。.]$/g, "")
+      .trim();
+    return cleaned ? `這次主要卡在「${cleaned}」。` : "你已經說出一個可以開始整理的卡點。";
+  }
+
+  async function resolveAgentReply(text, analysis) {
+    const fallback = { reply: buildLocalAgentResponse(analysis), source: "local" };
+    if (!state.settings.gasEndpoint) return fallback;
+    const user = state.currentUser || {};
+    const history = state.conversations
+      .filter((entry) => entry.studentId === user.id)
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))
+      .slice(0, 8)
+      .reverse()
+      .map((entry) => ({
+        message: entry.text,
+        reply: entry.agentReply,
+        createdAt: entry.createdAt
+      }));
+    const payload = {
+      message: text,
+      user: publicUser(user),
+      history,
+      analysis,
+      clientTime: new Date().toISOString()
+    };
+
+    try {
+      const data = await jsonp("llmChat", { payload: JSON.stringify(payload) }, 30000);
+      if (data && data.ok && safeText(data.reply)) {
+        return { reply: safeText(data.reply), source: "llm", model: data.model || "" };
+      }
+      if (data && data.error) showToast(`AI 回覆暫時未完成：${data.error}`);
+    } catch (err) {
+      showToast("AI 連線暫時不穩，東東先用本機規則陪你整理。");
+    }
+    return fallback;
   }
 
   function updateStudentRisk(analysis) {
+    if (!$("#studentRiskLabel") || !$("#studentRiskMeter") || !$("#studentRiskReason")) return;
     const effective = analysis || { level: "穩定", score: 12, reasons: ["先跟東東說一件最近卡住的事，東東會陪你整理重點。"] };
     $("#studentRiskLabel").textContent = effective.level;
     $("#studentRiskMeter").value = effective.score;
@@ -838,6 +911,7 @@
 
   function renderStudentRecommendation(analysis) {
     const box = $("#studentRecommendation");
+    if (!box) return;
     if (!analysis) {
       box.innerHTML = "跟東東聊一句，或填一下右邊近況，這裡就會整理你可以先做的小步驟。";
       return;
@@ -856,6 +930,10 @@
     const latestConversation = state.conversations
       .filter((entry) => entry.studentId === user.id)
       .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+    if (!latestConversation) {
+      showToast("先和東東聊一句，再保存學習摘要。");
+      return;
+    }
     const analysis = analyzeLearningNeed(Object.assign({}, context, { text: latestConversation ? latestConversation.text : "" }));
     const checkin = {
       checkinId: uid("checkin"),
@@ -1089,7 +1167,7 @@
       .catch(() => renderTeacherDashboard());
   }
 
-  function jsonp(action, params) {
+  function jsonp(action, params, timeoutMs = 16000) {
     return new Promise((resolve, reject) => {
       const endpoint = state.settings.gasEndpoint;
       if (!endpoint) {
@@ -1103,7 +1181,7 @@
       const timer = window.setTimeout(() => {
         cleanup();
         reject(new Error("timeout"));
-      }, 16000);
+      }, timeoutMs);
 
       function cleanup() {
         window.clearTimeout(timer);
@@ -1290,7 +1368,9 @@
     $("#riskFilter").addEventListener("change", () => renderTeacherDashboard());
 
     ["courseName", "difficultyType", "difficultyScore", "attendanceStatus", "preferredSupport"].forEach((id) => {
-      $(`#${id}`).addEventListener("input", () => {
+      const control = $(`#${id}`);
+      if (!control) return;
+      control.addEventListener("input", () => {
         const analysis = analyzeLearningNeed(Object.assign({}, readCheckinContext(), { text: "" }));
         updateStudentRisk(analysis);
         renderStudentRecommendation(analysis);

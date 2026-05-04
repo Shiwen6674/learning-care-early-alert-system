@@ -29,8 +29,8 @@
 4. 把 `SPREADSHEET_ID` 改成該試算表網址中的 id。
 5. 在 Script Properties 設定：
    - `ADMIN_SHARED_SECRET`：教師端查詢 token。
-   - `OPENAI_API_KEY`：若要使用 OpenAI 分析才需要。
-   - `OPENAI_MODEL`：可省略，預設使用 `gpt-4o-mini`。
+   - `OPENAI_API_KEY`：若要讓東東使用 LLM 回覆才需要。
+   - `OPENAI_MODEL`：可省略，預設使用 `gpt-5.2`。
 
 ## 3. 部署 Web App
 
@@ -52,4 +52,4 @@
 
 ## 5. AI 分析
 
-若設定 `OPENAI_API_KEY`，GAS 會在 `submitCheckin` 與 `submitConversation` 時嘗試產生更精準的摘要、風險標籤與建議行動。若未設定，系統會使用內建規則式分析，前台仍可運作。
+若設定 `OPENAI_API_KEY`，前台會透過 GAS 的 `llmChat` 端點取得東東的 LLM 回覆，API Key 不會出現在 GitHub Pages 前端。若未設定，系統會使用內建規則式回覆與分析，前台仍可運作。

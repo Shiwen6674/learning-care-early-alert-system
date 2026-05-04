@@ -518,9 +518,7 @@ textarea:focus {
 }
 
 .student-layout {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 22px;
+  display: block;
 }
 
 .student-sidebar {
@@ -533,6 +531,14 @@ textarea:focus {
 .progress-card,
 .support-card {
   padding: 18px;
+}
+
+.compact-profile {
+  flex: 0 1 360px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
 }
 
 .campus-support-card ul {
@@ -588,6 +594,7 @@ meter {
 
 .student-main {
   min-width: 0;
+  width: 100%;
 }
 
 .section-heading,
@@ -599,6 +606,19 @@ meter {
   margin-bottom: 18px;
 }
 
+.student-chat-heading {
+  align-items: center;
+}
+
+.student-chat-title {
+  flex: 1 1 auto;
+  min-width: 220px;
+}
+
+.student-chat-title h2 {
+  font-size: clamp(1.65rem, 2.5vw, 2.4rem);
+}
+
 .chat-and-form {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 390px;
@@ -606,14 +626,22 @@ meter {
   align-items: start;
 }
 
+.chat-and-form.chat-only {
+  display: block;
+}
+
 .chat-card,
 .checkin-card {
   padding: 18px;
 }
 
+.chat-only .chat-card {
+  padding: clamp(18px, 2.4vw, 28px);
+}
+
 .chat-log {
-  height: min(58vh, 560px);
-  min-height: 360px;
+  height: min(66vh, 720px);
+  min-height: 520px;
   overflow: auto;
   padding: 2px 4px 12px;
   display: flex;
@@ -622,10 +650,14 @@ meter {
 }
 
 .message {
-  max-width: min(680px, 88%);
+  max-width: min(860px, 88%);
   border-radius: 8px;
   padding: 12px 14px;
   line-height: 1.72;
+}
+
+.message.pending {
+  opacity: .78;
 }
 
 .message.agent {

@@ -42,6 +42,8 @@ function doGet(e) {
     } else if (action === "teacherDashboard") {
       assertTeacher_(params);
       result = { ok: true, records: buildTeacherDashboard_(), generatedAt: new Date().toISOString() };
+    } else if (action === "llmChat") {
+      result = chatWithOpenAI_(parseJson_(params.payload || "{}", {}));
     } else if (action === "studentProfile") {
       result = { ok: true, profile: buildStudentProfile_(params.studentId || ""), generatedAt: new Date().toISOString() };
     } else {
@@ -73,6 +75,7 @@ function doPost(e) {
       else if (action === "submitCheckin") result = submitCheckin_(payload.checkin || {});
       else if (action === "submitConversation") result = submitConversation_(payload.conversation || {});
       else if (action === "teacherNote") result = teacherNote_(payload.note || {});
+      else if (action === "llmChat") result = chatWithOpenAI_(payload.input || payload);
       else if (action === "riskAnalysis") result = { ok: true, analysis: analyzeWithOpenAI_(payload.input || payload) };
       else result = { ok: true, message: "已收到資料" };
     } finally {
@@ -498,6 +501,65 @@ function analyzeWithOpenAI_(input) {
   if (status >= 300) throw new Error(data.error && data.error.message ? data.error.message : "OpenAI 分析失敗");
   const text = extractOutputText_(data);
   return text ? JSON.parse(text) : null;
+}
+
+function chatWithOpenAI_(input) {
+  const apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
+  if (!apiKey) throw new Error("尚未設定 OPENAI_API_KEY。");
+  const model = PropertiesService.getScriptProperties().getProperty("OPENAI_MODEL") || "gpt-5.2";
+  const user = input.user || {};
+  const analysis = input.analysis || {};
+  const history = Array.isArray(input.history) ? input.history.slice(-8) : [];
+  const profile = [
+    user.name ? "姓名：" + user.name : "",
+    user.college ? "學院：" + user.college : "",
+    user.department ? "系所：" + user.department : "",
+    user.year ? "年級：" + user.year : ""
+  ].filter(Boolean).join("；");
+
+  const prompt = [
+    "你是「東東」，國立東華大學學習關懷預警系統的學習陪伴聊天角色。",
+    "任務：陪學生釐清課程、作業、考試準備、跨域修課、時間安排等學習問題，接住學生上一句話，提出一個具體、可行、很小的下一步。",
+    "語氣：繁體中文、溫暖、自然、像學習陪伴窗口；要接話，不要句點式結束。",
+    "限制：不要宣稱你是心理師、醫師或緊急服務；不要做醫療診斷；除非學生主動提到立即危險，不要主動出現自傷、自殺等字眼。",
+    "格式：2 到 4 個短段落即可；可以用簡短條列，但不要固定模板；最後一定問一個容易回答的追問。",
+    "學生背景：" + (profile || "未提供"),
+    "本機初步摘要：" + JSON.stringify(analysis),
+    "最近對話：" + JSON.stringify(history),
+    "學生最新訊息：" + String(input.message || "")
+  ].join("\n");
+
+  const payload = {
+    model: model,
+    input: [
+      {
+        role: "system",
+        content: [{ type: "input_text", text: "你只能回覆繁體中文。你是學習支持聊天代理，不取代專業諮商或緊急服務。請自然接話並引導下一步。" }]
+      },
+      {
+        role: "user",
+        content: [{ type: "input_text", text: prompt }]
+      }
+    ],
+    max_output_tokens: 900
+  };
+
+  const response = UrlFetchApp.fetch("https://api.openai.com/v1/responses", {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + apiKey },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const status = response.getResponseCode();
+  const data = JSON.parse(response.getContentText() || "{}");
+  if (status >= 300) throw new Error(data.error && data.error.message ? data.error.message : "OpenAI 回覆失敗");
+  const reply = extractOutputText_(data);
+  return {
+    ok: true,
+    model: model,
+    reply: reply || "我有收到。你可以再補一句目前最卡的地方，東東會陪你往下整理。"
+  };
 }
 
 function extractOutputText_(data) {

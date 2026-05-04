@@ -145,45 +145,23 @@
       </section>
 
       <section class="student-layout view hidden" id="studentView" aria-label="學生學習入口">
-        <aside class="student-sidebar">
-          <div class="profile-card">
-            <div class="avatar" id="studentAvatar">學</div>
-            <div>
-              <strong id="studentName">學生</strong>
-              <span id="studentMeta">東華大學</span>
-            </div>
-          </div>
-          <div class="progress-card">
-            <span class="label">目前關懷層級</span>
-            <strong id="studentRiskLabel">穩定</strong>
-            <meter id="studentRiskMeter" min="0" max="100" value="12"></meter>
-            <p id="studentRiskReason">先跟東東說一件最近卡住的事，東東會陪你整理重點。</p>
-          </div>
-          <div class="support-card">
-            <h3>在東華常見的卡點</h3>
-            <div id="studentNeedButtons" class="need-list"></div>
-          </div>
-          <div class="support-card campus-support-card">
-            <h3>可以連結的東華支持</h3>
-            <ul>
-              <li>授課教師與課程助教</li>
-              <li>班級導師與系辦</li>
-              <li>教學卓越中心學習資源</li>
-              <li>同儕討論與學習策略支持</li>
-            </ul>
-          </div>
-        </aside>
-
         <article class="student-main">
-          <div class="section-heading">
-            <div>
+          <div class="section-heading student-chat-heading">
+            <div class="profile-card compact-profile">
+              <div class="avatar" id="studentAvatar">學</div>
+              <div>
+                <strong id="studentName">學生</strong>
+                <span id="studentMeta">東華大學</span>
+              </div>
+            </div>
+            <div class="student-chat-title">
               <span class="panel-eyebrow">東東陪聊窗口</span>
-              <h2>東東會接住你說的，再陪你把下一步變小、變清楚。</h2>
+              <h2>和東東聊聊</h2>
             </div>
             <button class="secondary-button" id="saveCheckinButton" type="button"><i data-lucide="save"></i>保存學習摘要</button>
           </div>
 
-          <div class="chat-and-form">
+          <div class="chat-and-form chat-only">
             <section class="chat-card" aria-label="東東學習陪伴對話">
               <div class="chat-log" id="chatLog" aria-live="polite"></div>
               <form class="chat-composer" id="chatForm">
@@ -194,42 +172,6 @@
                 </div>
                 <button class="primary-button" type="submit"><i data-lucide="send"></i>送出</button>
               </form>
-            </section>
-
-            <section class="checkin-card" aria-label="學習近況自評">
-              <h3>我現在的狀態</h3>
-              <div class="form-grid compact">
-                <label>
-                  <span>是哪一門課或哪件事</span>
-                  <input id="courseName" placeholder="例如：統計學期中、專題報告、普物作業">
-                </label>
-                <label>
-                  <span>最像哪種卡住</span>
-                  <select id="difficultyType"></select>
-                </label>
-                <label>
-                  <span>卡住程度</span>
-                  <input id="difficultyScore" type="range" min="1" max="5" value="3">
-                </label>
-                <label>
-                  <span>這週上課與作業狀態</span>
-                  <select id="attendanceStatus">
-                    <option value="穩定參與">穩定參與</option>
-                    <option value="偶爾跟不上">偶爾跟不上</option>
-                    <option value="近期缺課或遲交">近期缺課或遲交</option>
-                    <option value="已經中斷一段時間">已經中斷一段時間</option>
-                  </select>
-                </label>
-                <label>
-                  <span>接下來一週最想先得到</span>
-                  <select id="preferredSupport"></select>
-                </label>
-                <label>
-                  <span>希望東東提醒追蹤</span>
-                  <input id="followUpDate" type="date">
-                </label>
-              </div>
-              <div class="recommendation-box" id="studentRecommendation"></div>
             </section>
           </div>
         </article>
@@ -311,7 +253,7 @@
         <span>教師查詢 token</span>
         <input id="teacherTokenInput" type="password" autocomplete="current-password">
       </label>
-      <p class="dialog-note">連線資訊只保存在這台裝置。正式部署時，教師權限仍需由後端驗證。</p>
+      <p class="dialog-note">連線資訊只保存在這台裝置。LLM API Key 請放在 GAS Script Properties 的 OPENAI_API_KEY，不要放在前台。</p>
       <div class="form-actions">
         <button class="secondary-button" value="cancel">取消</button>
         <button class="primary-button" id="saveSettingsButton" value="default"><i data-lucide="check"></i>儲存</button>
