@@ -153,23 +153,28 @@
   function renderLandingNeeds() {
     const landing = $("#landingQuickNeeds");
     const studentNeeds = $("#studentNeedButtons");
-    landing.innerHTML = "";
+    if (landing) landing.innerHTML = "";
     studentNeeds.innerHTML = "";
 
     quickNeeds.forEach((need) => {
-      const landingButton = document.createElement("button");
-      landingButton.type = "button";
-      landingButton.className = "need-chip";
-      landingButton.textContent = need;
-      landingButton.addEventListener("click", () => {
-        ensureStudentSession();
-        showView("student");
-        $("#chatInput").value = need;
-        $("#chatInput").focus();
-      });
-      landing.appendChild(landingButton);
+      if (landing) {
+        const landingButton = document.createElement("button");
+        landingButton.type = "button";
+        landingButton.className = "need-chip";
+        landingButton.textContent = need;
+        landingButton.addEventListener("click", () => {
+          ensureStudentSession();
+          showView("student");
+          $("#chatInput").value = need;
+          $("#chatInput").focus();
+        });
+        landing.appendChild(landingButton);
+      }
 
-      const studentButton = landingButton.cloneNode(true);
+      const studentButton = document.createElement("button");
+      studentButton.type = "button";
+      studentButton.className = "need-chip";
+      studentButton.textContent = need;
       studentButton.addEventListener("click", () => {
         $("#chatInput").value = need;
         $("#chatInput").focus();
