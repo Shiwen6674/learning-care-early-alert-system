@@ -4,18 +4,17 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LCEAS 國立東華大學學習關懷預警系統</title>
-  <meta name="description" content="國立東華大學 Learning Care Early Alert System，提供學生與安安進行安心、溫和的 AI 學習陪伴對話。">
+  <meta name="description" content="國立東華大學 Learning Care Early Alert System。">
   <link rel="icon" href="favicon.ico">
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="assets/css/styles.css">
   <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script defer src="assets/js/ndhu-data.js"></script>
   <script defer src="assets/js/app.js"></script>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="返回首頁">
+      <a class="brand" href="#" aria-label="LCEAS">
         <span class="brand-mark"><img src="assets/img/ndhu-emblem.png" alt="國立東華大學校徽"></span>
         <span>
           <strong>LCEAS 國立東華大學學習關懷預警系統</strong>
@@ -23,81 +22,25 @@
         </span>
       </a>
       <nav class="top-actions" aria-label="主要功能">
-        <button class="soft-button" id="openConsentButton" type="button"><i data-lucide="leaf"></i>使用說明</button>
-        <button class="soft-button" id="startChatNavButton" type="button"><i data-lucide="message-circle-heart"></i>開始對話</button>
-        <button class="soft-button" id="downloadNavButton" type="button"><i data-lucide="download"></i>下載對話</button>
+        <button class="soft-button" id="openConsentButton" type="button"><i data-lucide="book-open"></i>說明</button>
+        <button class="soft-button" id="downloadNavButton" type="button"><i data-lucide="download"></i>下載</button>
+        <button class="soft-button" id="clearChatButton" type="button"><i data-lucide="eraser"></i>清除</button>
         <button class="icon-button" id="settingsButton" type="button" title="連線設定" aria-label="連線設定"><i data-lucide="settings"></i></button>
       </nav>
     </header>
 
-    <main>
-      <section class="home-view view" id="homeView">
-        <article class="welcome-panel">
-          <figure class="campus-photo">
-            <img src="assets/img/ndhu-campus-lake.jpg" alt="國立東華大學湖畔校園">
-          </figure>
-          <div class="welcome-copy">
-            <span class="panel-eyebrow">東華大學 Learning Care Early Alert System</span>
-            <h1>和安安談談最近卡住的學習片刻。</h1>
-            <p>安安是國立東華大學學習關懷預警系統中的 AI 學習陪伴。你可以把課程進度、作業、考試準備、跨域修課或時間安排的卡點，用自己的語氣說出來；安安會先聽懂情境，再陪你把下一步整理得更小、更清楚。</p>
-          </div>
-        </article>
-
-        <aside class="start-panel" aria-label="開始和安安對話">
-          <div>
-            <span class="panel-eyebrow">安心開始</span>
-            <h2>不用整理好才開口</h2>
-            <p>這段對話不會寫入教師後台，也不會保存到資料庫。若你想留下內容，可以自行下載對話紀錄，帶去和諮商師或你信任的人討論。</p>
-          </div>
-          <div class="context-form">
-            <label>
-              <span>安安可以怎麼稱呼你</span>
-              <input id="nicknameInput" autocomplete="off" placeholder="例如：小文、東華同學">
-            </label>
-            <div class="two-fields">
-              <label>
-                <span>學院</span>
-                <select id="contextCollege"></select>
-              </label>
-              <label>
-                <span>系所</span>
-                <select id="contextDepartment"></select>
-              </label>
-            </div>
-            <label>
-              <span>現在最想先整理的事</span>
-              <textarea id="firstThoughtInput" rows="3" placeholder="例如：我最近統計學作業一直拖，想問老師但不知道怎麼開口。"></textarea>
-            </label>
-          </div>
-          <button class="primary-button wide-button" id="startChatButton" type="button"><i data-lucide="sparkles"></i>開始和安安聊聊</button>
+    <main class="chat-main">
+      <section class="chat-shell" aria-label="安安對話">
+        <aside class="anan-card" aria-label="安安">
+          <img src="assets/img/anan-avatar.svg" alt="安安">
         </aside>
-      </section>
-
-      <section class="chat-view view hidden" id="chatView" aria-label="安安學習陪伴對話">
-        <div class="chat-heading">
-          <div class="anan-profile">
-            <div class="anan-avatar"><img src="assets/img/ndhu-emblem.png" alt=""></div>
-            <div>
-              <span class="panel-eyebrow">安安陪聊窗口</span>
-              <h2>安安在這裡，陪你把學習問題慢慢說清楚。</h2>
-            </div>
-          </div>
-          <div class="chat-actions">
-            <button class="secondary-button" id="downloadChatButton" type="button"><i data-lucide="download"></i>下載對話紀錄</button>
-            <button class="secondary-button" id="clearChatButton" type="button"><i data-lucide="eraser"></i>清除畫面</button>
-          </div>
-        </div>
 
         <section class="chat-card">
-          <div class="privacy-ribbon">
-            <i data-lucide="shield-check"></i>
-            <span>對話只暫存在目前畫面，用來讓安安接續理解；重新整理或清除後就不會留在網頁中。</span>
-          </div>
           <div class="chat-log" id="chatLog" aria-live="polite"></div>
           <form class="chat-composer" id="chatForm">
-            <label class="sr-only" for="chatInput">輸入想和安安說的學習近況</label>
+            <label class="sr-only" for="chatInput">輸入訊息</label>
             <div class="composer-field">
-              <textarea id="chatInput" rows="3" placeholder="可以很口語：安安，我最近某門課快跟不上，作業一直拖，想問老師但不知道怎麼講。"></textarea>
+              <textarea id="chatInput" rows="3" placeholder="輸入你想和安安說的話..."></textarea>
               <button class="icon-button voice-button" id="voiceInputButton" type="button" title="語音輸入" aria-label="語音輸入"><i data-lucide="mic"></i></button>
             </div>
             <button class="primary-button send-button" type="submit"><i data-lucide="send"></i>送出</button>
@@ -110,10 +53,10 @@
   <dialog class="consent-dialog" id="usageConsentDialog" aria-labelledby="usageConsentTitle">
     <form method="dialog" class="consent-card" id="usageConsentForm">
       <h2 id="usageConsentTitle">使用說明</h2>
-      <p>安安是國立東華大學學習關懷預警系統中的 AI 學習陪伴，協助你在對話中整理課業、時間安排、學習策略與求助方向。</p>
-      <p>安安會用溫和、友善、像學習導師的方式回應，但不取代心理諮商、醫療或緊急服務；若遇到急迫狀況，請直接聯絡校內外專業資源。</p>
-      <p>本頁不建立教師後台，也不保存你的完整對話。若你希望保留內容，可以自行下載對話紀錄，帶去和諮商師或你信任的人討論。</p>
-      <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用與安心說明</a>
+      <p>安安是 LCEAS 中的 AI 學習陪伴，協助整理課業、時間安排、學習策略與求助表達。</p>
+      <p>請用自己的節奏輸入想談的學習狀況，也請避免輸入身分證字號、完整住址、金融資訊等不必要的敏感資料。</p>
+      <p>安安提供學習上的陪伴與引導，不取代校內專業諮詢或正式課業評量。</p>
+      <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用說明</a>
       <label class="consent-line">
         <input id="usageConsentCheck" type="checkbox" required>
         <span>我已閱讀並了解以上說明</span>
@@ -130,9 +73,9 @@
       </div>
       <label>
         <span>Google Apps Script Web App URL</span>
-        <input id="gasEndpointInput" type="url" placeholder="貼上部署後的 Web App URL">
+        <input id="gasEndpointInput" type="url">
       </label>
-      <p class="dialog-note">OpenAI API Key 只放在 GAS Script Properties 的 <code>OPENAI_API_KEY</code>，不要放在前台或 GitHub。</p>
+      <p class="dialog-note">OpenAI API key 請放在 Apps Script 的 Script Properties：<code>OPENAI_API_KEY</code>，也支援 <code>API_KEY</code>。</p>
       <div class="form-actions">
         <button class="secondary-button" value="cancel">取消</button>
         <button class="primary-button" id="saveSettingsButton" value="default"><i data-lucide="check"></i>儲存</button>

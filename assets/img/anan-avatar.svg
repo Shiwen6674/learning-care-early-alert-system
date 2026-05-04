@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 460" role="img" aria-labelledby="title desc">
+  <title id="title">Anan avatar</title>
+  <desc id="desc">Warm anime style older sister learning companion avatar.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff8ec"/>
+      <stop offset="1" stop-color="#e9f6ef"/>
+    </linearGradient>
+    <linearGradient id="hair" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#6b4a34"/>
+      <stop offset="1" stop-color="#34251f"/>
+    </linearGradient>
+    <linearGradient id="coat" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fbf7ef"/>
+      <stop offset="1" stop-color="#dceee5"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="460" rx="32" fill="url(#bg)"/>
+  <circle cx="280" cy="82" r="42" fill="#cfe8dc" opacity=".55"/>
+  <circle cx="70" cy="350" r="56" fill="#f8ddb5" opacity=".42"/>
+  <path d="M83 430c14-82 62-124 98-124s84 42 98 124H83z" fill="url(#coat)"/>
+  <path d="M118 426c8-52 34-84 63-84s55 32 63 84H118z" fill="#0f766e" opacity=".88"/>
+  <path d="M122 142c7-68 49-102 99-89 44 12 66 50 58 116-4 36-13 72-7 117 4 31 21 61 33 84-42 16-84 7-113-18-35 25-78 31-119 11 22-35 30-76 28-123-1-38 10-67 21-98z" fill="url(#hair)"/>
+  <path d="M112 206c-22 3-32 18-27 39 5 20 23 30 41 23l-14-62z" fill="#f3c9b7"/>
+  <path d="M251 206c22 3 32 18 27 39-5 20-23 30-41 23l14-62z" fill="#f3c9b7"/>
+  <path d="M122 174c7-48 34-82 70-82 45 0 75 34 81 85 9 80-23 142-77 146-59 4-87-66-74-149z" fill="#f7d3c3"/>
+  <path d="M130 176c39-12 74-37 93-70 21 22 34 48 44 80-1-56-30-97-72-101-41-3-70 28-65 91z" fill="url(#hair)"/>
+  <path d="M118 203c20-4 41-16 58-30-4 36-28 61-59 72-3-13-3-27 1-42z" fill="url(#hair)" opacity=".96"/>
+  <path d="M268 202c-23-9-43-27-56-49 4 38 24 69 58 91 3-15 2-29-2-42z" fill="url(#hair)" opacity=".96"/>
+  <ellipse cx="161" cy="210" rx="10" ry="13" fill="#2a3337"/>
+  <ellipse cx="221" cy="210" rx="10" ry="13" fill="#2a3337"/>
+  <circle cx="157" cy="205" r="3" fill="#fff"/>
+  <circle cx="217" cy="205" r="3" fill="#fff"/>
+  <path d="M178 244c9 8 22 8 31 0" fill="none" stroke="#9f5f5c" stroke-width="5" stroke-linecap="round"/>
+  <path d="M142 192c11-9 27-11 39-5" fill="none" stroke="#392820" stroke-width="5" stroke-linecap="round"/>
+  <path d="M207 187c13-7 28-4 39 6" fill="none" stroke="#392820" stroke-width="5" stroke-linecap="round"/>
+  <path d="M190 222c-3 10-4 17 5 19" fill="none" stroke="#d0998b" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="134" cy="232" r="12" fill="#efaaa4" opacity=".45"/>
+  <circle cx="248" cy="232" r="12" fill="#efaaa4" opacity=".45"/>
+  <path d="M154 314c16 20 55 20 72 0l-14 54h-43l-15-54z" fill="#f0c0b2"/>
+  <path d="M145 342c16 20 72 20 91 0" fill="none" stroke="#fffdf8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M110 425c14-58 36-87 70-93l-16 94h-54z" fill="#fffdf8" opacity=".7"/>
+  <path d="M250 425c-14-58-36-87-70-93l16 94h54z" fill="#fffdf8" opacity=".7"/>
+  <path d="M135 376h92" stroke="#ffffff" stroke-width="5" opacity=".6"/>
+</svg>
