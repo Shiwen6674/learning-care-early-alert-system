@@ -4,6 +4,7 @@
   const STORE_KEY = "ndhu.learning.warning.state.v1";
   const SESSION_KEY = "ndhu.learning.warning.currentUser";
   const SETTINGS_KEY = "ndhu.learning.warning.settings";
+  const CONSENT_KEY = "ndhu.learning.warning.usageConsent.v1";
   const DEFAULT_CONFIG = {
     gasEndpoint: "",
     teacherToken: ""
@@ -41,7 +42,10 @@
     currentUser: null,
     settings: Object.assign({}, DEFAULT_CONFIG)
   };
-  let authMode = "register";
+  let authMode = "login";
+  let speechRecognition = null;
+  let isListening = false;
+  let nextInputMethod = "text";
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -121,6 +125,21 @@
     const date = new Date();
     date.setDate(date.getDate() + days);
     return date.toISOString().slice(0, 10);
+  }
+
+  function formatMessageTime(value) {
+    const date = value ? new Date(value) : new Date();
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleTimeString("zh-TW", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+  }
+
+  function isoTime(value) {
+    const date = value ? new Date(value) : new Date();
+    return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
   }
 
   function loadState() {
@@ -262,6 +281,10 @@
     $$("[data-auth-mode]").forEach((button) => {
       button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
     });
+    const switchButton = $("#authSwitchButton");
+    if (switchButton) {
+      switchButton.addEventListener("click", () => setAuthMode(getAuthMode() === "login" ? "register" : "login"));
+    }
   }
 
   function setAuthRole(role) {
@@ -280,6 +303,10 @@
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", active ? "true" : "false");
     });
+    if ($("#authSwitchText") && $("#authSwitchButton")) {
+      $("#authSwitchText").textContent = authMode === "login" ? "尚未註冊？" : "已有帳號？";
+      $("#authSwitchButton").textContent = authMode === "login" ? "建立帳號" : "回到登入";
+    }
     syncAuthFormState();
   }
 
@@ -321,13 +348,13 @@
       : (isRegister ? "教師註冊" : "教師登入");
     $("#authHint").textContent = role === "student"
       ? (isRegister
-        ? "第一次使用請建立帳號，東東會用學院、系所與年級理解你的學習脈絡，之後所有聊天都會保存在你的學習紀錄中。"
-        : "請先登入，東東才會開啟聊天並保存完整對話紀錄。")
+        ? "第一次使用請建立帳號，東東會用學院、系所與年級理解你的學習脈絡。"
+        : "請先登入，東東會接續你的學習脈絡，陪你把最近的卡點整理清楚。")
       : (isRegister
         ? "教師第一次使用請建立帳號，之後可進入教師工作台查看學生學習摘要與追蹤事項。"
         : "請登入教師帳號，進入教師工作台查看已授權的學生學習紀錄。");
     $("#authSubmitText").textContent = role === "student"
-      ? (isRegister ? "完成註冊並找東東" : "登入並找東東")
+      ? (isRegister ? "完成註冊並找東東" : "登入")
       : (isRegister ? "完成教師註冊" : "登入教師工作台");
   }
 
@@ -372,7 +399,7 @@
       syncWrite("login", { user: publicUser(storedUser) });
       if (role === "student") {
         showView("student");
-        showToast("已登入，東東會保存這次的聊天紀錄。");
+        showToast("已登入，東東會接續陪你整理學習近況。");
       } else {
         showView("teacher");
         showToast("已登入教師工作台。");
@@ -402,9 +429,8 @@
       college: safeText(form.get("college")),
       department: safeText(form.get("department")),
       year: safeText(form.get("year")),
-      advisorEmail: safeText(form.get("advisorEmail")),
       teacherToken: safeText(form.get("teacherToken")) || state.settings.teacherToken,
-      consent: form.get("consent") === "on",
+      consent: localStorage.getItem(CONSENT_KEY) === "accepted",
       passwordSalt,
       passwordHash,
       resetCodeHash: "",
@@ -424,7 +450,7 @@
     syncWrite("register", { user: publicUser(user) });
     if (role === "student") {
       showView("student");
-      showToast("註冊完成。現在開始和東東的每一次對話都會保存到你的學習紀錄。");
+      showToast("註冊完成，東東在這裡陪你整理下一步。");
     } else {
       showView("teacher");
       showToast("教師帳號已建立，已進入工作台。");
@@ -515,11 +541,11 @@
   function showLoginRequired(role = "student") {
     showView("entry");
     setAuthRole(role);
-    setAuthMode(role === "student" ? "register" : "login");
+    setAuthMode("login");
     const emailInput = $("[name='email']");
     if (emailInput) emailInput.focus();
     showToast(role === "student"
-      ? "請先註冊或登入，東東才會開啟聊天並保存完整對話紀錄。"
+      ? "請先登入或建立帳號，東東才能接續你的學習脈絡。"
       : "請先登入教師帳號。");
   }
 
@@ -568,15 +594,32 @@
 
   function ensureChatIntro() {
     if ($("#chatLog").children.length) return;
+    const user = ensureStudentSession();
+    if (!user) return;
+    const history = state.conversations
+      .filter((entry) => entry.studentId === user.id)
+      .sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)))
+      .slice(-20);
+    history.forEach((entry) => {
+      addChatMessage("user", entry.text, entry.createdAt, entry.inputMethod === "voice" ? "語音轉文字" : "");
+      addChatMessage("agent", entry.agentReply, entry.replyAt || entry.createdAt);
+    });
+    if (history.length) return;
     addChatMessage("agent", "我是東東，東華的學習陪伴窗口。你不用把事情講得很完整，先丟一句很亂的也可以，我會陪你慢慢整理。");
     addChatMessage("agent", "你可以從「哪門課、哪個作業、哪次考試、哪個生活節奏卡住」任選一個開始。東東會接話，不會把你丟在半路。");
   }
 
-  function addChatMessage(role, text) {
+  function addChatMessage(role, text, timestamp = new Date().toISOString(), meta = "") {
     const message = document.createElement("div");
     message.className = `message ${role === "user" ? "user" : "agent"}`;
     const speaker = role === "user" ? "你" : "東東";
-    message.innerHTML = `<strong>${speaker}</strong><span>${escapeHtml(text).replace(/\n/g, "<br>")}</span>`;
+    const time = isoTime(timestamp);
+    const label = [formatMessageTime(time), meta].filter(Boolean).join(" · ");
+    message.innerHTML = `
+      <strong>${speaker}</strong>
+      <span>${escapeHtml(text).replace(/\n/g, "<br>")}</span>
+      <time datetime="${escapeHtml(time)}">${escapeHtml(label)}</time>
+    `;
     $("#chatLog").appendChild(message);
     $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
   }
@@ -588,25 +631,32 @@
     if (!text) return;
     const user = ensureStudentSession();
     if (!user) return;
-    addChatMessage("user", text);
+    const inputMethod = input.dataset.inputMethod || nextInputMethod || "text";
+    const createdAt = new Date().toISOString();
+    addChatMessage("user", text, createdAt, inputMethod === "voice" ? "語音轉文字" : "");
     input.value = "";
+    input.dataset.inputMethod = "";
+    nextInputMethod = "text";
 
     const context = readCheckinContext();
     const analysis = analyzeLearningNeed(Object.assign({}, context, { text }));
     const response = buildAgentResponse(analysis);
-    addChatMessage("agent", response);
+    const replyAt = new Date().toISOString();
+    addChatMessage("agent", response, replyAt);
     updateStudentRisk(analysis);
     renderStudentRecommendation(analysis);
 
     const conversation = {
       conversationId: uid("conv"),
-      createdAt: new Date().toISOString(),
+      createdAt,
+      replyAt,
       studentId: user.id,
       studentName: user.name,
       college: user.college,
       department: user.department,
       text,
       agentReply: response,
+      inputMethod,
       analysis
     };
     state.conversations.push(conversation);
@@ -816,7 +866,6 @@
       college: user.college,
       department: user.department,
       year: user.year,
-      advisorEmail: user.advisorEmail,
       courseName: context.courseName,
       difficultyType: context.difficultyType,
       difficultyScore: context.difficultyScore,
@@ -831,7 +880,7 @@
     updateStudentRisk(analysis);
     renderStudentRecommendation(analysis);
     syncWrite("submitCheckin", { checkin });
-    showToast("已保存，東東也把重點整理成導師看得懂的追蹤摘要。");
+    showToast("已保存，東東也把重點整理成教師看得懂的學習摘要。");
   }
 
   function toRiskSignal(user, analysis, source) {
@@ -840,7 +889,6 @@
       createdAt: new Date().toISOString(),
       studentId: user.id,
       studentName: user.name,
-      advisorEmail: user.advisorEmail,
       source,
       category: analysis.tags.join("、"),
       severity: analysis.level,
@@ -1091,12 +1139,129 @@
     showToast("連線設定已保存。");
   }
 
+  function setupUsageConsent() {
+    const dialog = $("#usageConsentDialog");
+    const check = $("#usageConsentCheck");
+    const button = $("#usageConsentButton");
+    const form = $("#usageConsentForm");
+    if (!dialog || !check || !button || !form) return;
+
+    check.addEventListener("change", () => {
+      button.disabled = !check.checked;
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!check.checked) return;
+      localStorage.setItem(CONSENT_KEY, "accepted");
+      if (dialog.open) dialog.close();
+    });
+
+    if (localStorage.getItem(CONSENT_KEY) !== "accepted") {
+      check.checked = false;
+      button.disabled = true;
+      if (typeof dialog.showModal === "function") dialog.showModal();
+      else dialog.classList.remove("hidden");
+    }
+  }
+
+  function bindPasswordToggles() {
+    $$("[data-password-toggle]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const input = $("input", button.closest(".password-field"));
+        if (!input) return;
+        const shouldShow = input.type === "password";
+        input.type = shouldShow ? "text" : "password";
+        button.setAttribute("aria-label", shouldShow ? "隱藏密碼" : "顯示密碼");
+        button.setAttribute("title", shouldShow ? "隱藏密碼" : "顯示密碼");
+        button.innerHTML = `<i data-lucide="${shouldShow ? "eye-off" : "eye"}"></i>`;
+        iconRefresh();
+      });
+    });
+  }
+
+  function setupVoiceInput() {
+    const button = $("#voiceInputButton");
+    const input = $("#chatInput");
+    if (!button || !input) return;
+
+    input.addEventListener("input", () => {
+      if (!isListening) {
+        input.dataset.inputMethod = "text";
+        nextInputMethod = "text";
+      }
+    });
+
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) {
+      button.addEventListener("click", () => showToast("這個瀏覽器目前不支援語音輸入，可以先用文字和東東聊。"));
+      return;
+    }
+
+    speechRecognition = new Recognition();
+    speechRecognition.lang = "zh-TW";
+    speechRecognition.continuous = false;
+    speechRecognition.interimResults = true;
+    let baseText = "";
+
+    speechRecognition.addEventListener("start", () => {
+      isListening = true;
+      baseText = input.value.trim();
+      button.classList.add("listening");
+      button.setAttribute("aria-label", "停止語音輸入");
+      button.setAttribute("title", "停止語音輸入");
+      button.innerHTML = `<i data-lucide="mic-off"></i>`;
+      iconRefresh();
+    });
+
+    speechRecognition.addEventListener("result", (event) => {
+      let finalTranscript = "";
+      let interimTranscript = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const transcript = event.results[index][0].transcript.trim();
+        if (event.results[index].isFinal) finalTranscript += transcript;
+        else interimTranscript += transcript;
+      }
+      const heard = finalTranscript || interimTranscript;
+      if (!heard) return;
+      input.value = [baseText, heard].filter(Boolean).join(baseText ? " " : "");
+      if (finalTranscript) baseText = input.value.trim();
+      input.dataset.inputMethod = "voice";
+      nextInputMethod = "voice";
+    });
+
+    speechRecognition.addEventListener("error", (event) => {
+      if (event.error !== "no-speech") showToast("語音輸入暫時無法使用，請改用文字輸入。");
+    });
+
+    speechRecognition.addEventListener("end", () => {
+      isListening = false;
+      button.classList.remove("listening");
+      button.setAttribute("aria-label", "語音輸入");
+      button.setAttribute("title", "語音輸入");
+      button.innerHTML = `<i data-lucide="mic"></i>`;
+      iconRefresh();
+    });
+
+    button.addEventListener("click", () => {
+      if (isListening) {
+        speechRecognition.stop();
+        return;
+      }
+      try {
+        speechRecognition.start();
+      } catch (err) {
+        showToast("語音輸入正在準備中，請稍後再試一次。");
+      }
+    });
+  }
+
   function bindEvents() {
     bindAuthRoleTabs();
     bindAuthModeTabs();
-    setAuthMode("register");
+    bindPasswordToggles();
+    setupVoiceInput();
+    setAuthMode("login");
     $("#authForm").addEventListener("submit", handleAuthSubmit);
-    $("#continueLocalButton").addEventListener("click", () => showLoginRequired("student"));
     $("#forgotPasswordButton").addEventListener("click", requestPasswordReset);
     $("#resetPasswordButton").addEventListener("click", applyPasswordReset);
     $("#chatForm").addEventListener("submit", handleChatSubmit);
@@ -1139,6 +1304,7 @@
     renderLandingNeeds();
     renderStudentSelects();
     bindEvents();
+    setupUsageConsent();
     if (isAuthenticatedCurrentUser("student")) showView("student");
     else if (isAuthenticatedCurrentUser("teacher")) showView("teacher");
     else if (state.currentUser) {

@@ -17,11 +17,11 @@ const SHEETS = {
 const HEADERS = {
   Settings: ["key", "value", "description", "updated_at"],
   CollegesDepartments: ["college", "department", "degree_level", "source_note", "active"],
-  Students: ["student_id", "name", "email", "college", "department", "year", "advisor_email", "consent_status", "status", "created_at", "last_seen_at", "risk_level", "risk_score", "primary_need", "latest_summary"],
+  Students: ["student_id", "name", "email", "college", "department", "year", "consent_status", "status", "created_at", "last_seen_at", "risk_level", "risk_score", "primary_need", "latest_summary"],
   Teachers: ["teacher_id", "name", "email", "role", "college", "department", "can_view_scope", "status", "created_at", "last_seen_at"],
-  LearningCheckins: ["checkin_id", "timestamp", "student_id", "student_name", "email", "college", "department", "year", "advisor_email", "course_name", "difficulty_type", "difficulty_score", "attendance_status", "preferred_support", "follow_up_date", "risk_level", "risk_score", "tags", "summary", "recommendations_json", "raw_json"],
+  LearningCheckins: ["checkin_id", "timestamp", "student_id", "student_name", "email", "college", "department", "year", "course_name", "difficulty_type", "difficulty_score", "attendance_status", "preferred_support", "follow_up_date", "risk_level", "risk_score", "tags", "summary", "recommendations_json", "raw_json"],
   Conversations: ["conversation_id", "timestamp", "student_id", "student_name", "college", "department", "message", "agent_reply", "risk_level", "risk_score", "tags", "summary", "visibility_to_teacher", "raw_json"],
-  RiskSignals: ["signal_id", "timestamp", "student_id", "student_name", "advisor_email", "source", "category", "severity", "evidence", "risk_score", "status", "due_date", "resolved_at"],
+  RiskSignals: ["signal_id", "timestamp", "student_id", "student_name", "source", "category", "severity", "evidence", "risk_score", "status", "due_date", "resolved_at"],
   InterventionPlans: ["plan_id", "created_at", "student_id", "teacher_email", "priority", "concern", "action_plan", "student_strength", "next_meeting_date", "status", "outcome_note"],
   TeacherNotes: ["note_id", "timestamp", "teacher_email", "teacher_name", "student_id", "note", "visibility"],
   Referrals: ["referral_id", "timestamp", "student_id", "referral_type", "unit", "reason", "status", "handled_by", "handled_at", "note"],
@@ -190,7 +190,6 @@ function submitCheckin_(checkin) {
     college: checkin.college || "",
     department: checkin.department || "",
     year: checkin.year || "",
-    advisor_email: checkin.advisorEmail || "",
     course_name: checkin.courseName || "",
     difficulty_type: checkin.difficultyType || "",
     difficulty_score: checkin.difficultyScore || "",
@@ -256,7 +255,6 @@ function normalizeStudent_(user) {
     college: user.college || "",
     department: user.department || "",
     year: user.year || "",
-    advisor_email: user.advisorEmail || "",
     consent_status: user.consent ? "agreed" : "pending",
     status: "active",
     created_at: new Date(),
@@ -292,7 +290,6 @@ function updateStudentRisk_(checkin) {
     college: checkin.college,
     department: checkin.department,
     year: checkin.year,
-    advisorEmail: checkin.advisorEmail,
     consent: true
   });
   row.risk_level = analysis.level || "";
@@ -309,7 +306,6 @@ function appendRisk_(source, sourceName) {
     timestamp: new Date(),
     student_id: source.studentId || "",
     student_name: source.studentName || "",
-    advisor_email: source.advisorEmail || "",
     source: sourceName,
     category: (analysis.tags || []).join("、"),
     severity: analysis.level || "",

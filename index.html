@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>LCEAS國立東華大學學習照護預警系統</title>
-  <meta name="description" content="東華大學 Learning Care Early Alert System，提供學生學習陪伴、教師預警輔導與追蹤管理。">
+  <title>LCEAS 國立東華大學學習關懷預警系統</title>
+  <meta name="description" content="國立東華大學 Learning Care Early Alert System，提供學生學習陪伴、教師預警輔導與追蹤管理。">
   <link rel="icon" href="favicon.ico">
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="assets/css/styles.css">
@@ -18,8 +18,8 @@
       <a class="brand" href="#" aria-label="返回系統首頁">
         <span class="brand-mark"><img src="assets/img/ndhu-emblem.png" alt="國立東華大學校徽"></span>
         <span>
-          <strong>LCEAS國立東華大學學習照護預警系統</strong>
-          <small>Learning Care Early Alert System</small>
+          <strong>LCEAS 國立東華大學學習關懷預警系統</strong>
+          <small>National Dong Hwa University Learning Care Early Alert System</small>
         </span>
       </a>
       <nav class="top-actions" aria-label="主要功能">
@@ -38,8 +38,8 @@
             <img src="assets/img/ndhu-campus-lake.jpg" alt="國立東華大學湖畔校園">
           </figure>
           <div class="learning-brief">
-            <div class="panel-eyebrow">東華大學 Learning Care Early Alert System</div>
-            <p class="lead">這裡是國立東華大學 LCEAS 學習照護預警系統。東東會依你的學院、系所與課程情境，協助你整理學習近況、釐清卡點與下一步行動；登入後的每一次對話都會保存為學習紀錄，作為你和教師後續追蹤與支持的依據。</p>
+            <div class="panel-eyebrow">國立東華大學 Learning Care Early Alert System</div>
+            <p class="lead">這裡是國立東華大學學習關懷預警系統。東東會依你的學院、系所與課程情境，協助你整理學習近況、釐清卡點與下一步行動；需要時，也會協助生成讓教師快速掌握的學習摘要。</p>
           </div>
         </article>
 
@@ -50,13 +50,13 @@
           </div>
 
           <form class="auth-form" id="authForm">
-            <div class="auth-mode" role="tablist" aria-label="帳號動作">
-              <button class="active" type="button" data-auth-mode="register" role="tab" aria-selected="true">註冊</button>
-              <button type="button" data-auth-mode="login" role="tab" aria-selected="false">登入</button>
+            <div class="auth-switch" aria-live="polite">
+              <span id="authSwitchText">尚未註冊？</span>
+              <button class="link-button" id="authSwitchButton" type="button">建立帳號</button>
             </div>
             <div class="form-title">
-              <h2 id="authTitle">學生註冊 / 登入</h2>
-              <p id="authHint">第一次使用請留下基本資料，東東會用這些資訊理解你的學院、系所與學習脈絡；之後就能直接接續你的學習紀錄。</p>
+              <h2 id="authTitle">學生登入</h2>
+              <p id="authHint">請先登入，東東會接續你的學習脈絡，陪你把最近的卡點整理清楚。</p>
             </div>
             <div class="form-grid">
               <label data-register-only>
@@ -69,11 +69,17 @@
               </label>
               <label>
                 <span>密碼</span>
-                <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+                <div class="password-field">
+                  <input name="password" type="password" autocomplete="current-password" minlength="8" required>
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="顯示密碼" title="顯示密碼"><i data-lucide="eye"></i></button>
+                </div>
               </label>
               <label data-register-only>
                 <span>確認密碼</span>
-                <input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+                <div class="password-field">
+                  <input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="顯示確認密碼" title="顯示確認密碼"><i data-lucide="eye"></i></button>
+                </div>
               </label>
               <label data-student-only>
                 <span>學號</span>
@@ -102,19 +108,14 @@
                   <option value="研究所">研究所</option>
                 </select>
               </label>
-              <label data-student-only>
-                <span>導師或授課教師信箱</span>
-                <input name="advisorEmail" type="email" autocomplete="email">
-              </label>
               <label data-teacher-only class="hidden">
                 <span>教師查詢 token</span>
-                <input name="teacherToken" type="password" autocomplete="current-password">
+                <div class="password-field">
+                  <input name="teacherToken" type="password" autocomplete="current-password">
+                  <button class="password-toggle" type="button" data-password-toggle aria-label="顯示教師查詢 token" title="顯示教師查詢 token"><i data-lucide="eye"></i></button>
+                </div>
               </label>
             </div>
-            <label class="consent-line" data-register-only>
-              <input name="consent" type="checkbox" required>
-              <span>我了解 LCEAS 會保存本次學習紀錄，用於後續陪伴與教師端必要追蹤。</span>
-            </label>
             <div class="auth-links hidden" id="loginAssist">
               <button class="link-button" id="forgotPasswordButton" type="button">忘記密碼？寄送修改認證</button>
             </div>
@@ -128,14 +129,16 @@
                 </label>
                 <label>
                   <span>新密碼</span>
-                  <input id="resetPasswordInput" type="password" autocomplete="new-password" minlength="8">
+                  <div class="password-field">
+                    <input id="resetPasswordInput" type="password" autocomplete="new-password" minlength="8">
+                    <button class="password-toggle" type="button" data-password-toggle aria-label="顯示新密碼" title="顯示新密碼"><i data-lucide="eye"></i></button>
+                  </div>
                 </label>
               </div>
               <button class="secondary-button" id="resetPasswordButton" type="button"><i data-lucide="key-round"></i>更新密碼</button>
             </div>
             <div class="form-actions">
-              <button class="primary-button" type="submit"><i data-lucide="arrow-right"></i><span id="authSubmitText">進入東東陪聊</span></button>
-              <button class="secondary-button" type="button" id="continueLocalButton"><i data-lucide="sparkles"></i>登入後找東東聊聊</button>
+              <button class="primary-button" type="submit"><i data-lucide="arrow-right"></i><span id="authSubmitText">登入</span></button>
             </div>
           </form>
         </aside>
@@ -177,7 +180,7 @@
               <span class="panel-eyebrow">東東陪聊窗口</span>
               <h2>東東會接住你說的，再陪你把下一步變小、變清楚。</h2>
             </div>
-            <button class="secondary-button" id="saveCheckinButton" type="button"><i data-lucide="save"></i>保存給導師追蹤</button>
+            <button class="secondary-button" id="saveCheckinButton" type="button"><i data-lucide="save"></i>保存學習摘要</button>
           </div>
 
           <div class="chat-and-form">
@@ -185,7 +188,10 @@
               <div class="chat-log" id="chatLog" aria-live="polite"></div>
               <form class="chat-composer" id="chatForm">
                 <label class="sr-only" for="chatInput">跟東東說你的學習近況</label>
-                <textarea id="chatInput" rows="3" placeholder="可以很口語：東東，我最近某門課快跟不上，作業一直拖，想問老師但不知道怎麼講。"></textarea>
+                <div class="composer-field">
+                  <textarea id="chatInput" rows="3" placeholder="可以很口語：東東，我最近某門課快跟不上，作業一直拖，想問老師但不知道怎麼講。"></textarea>
+                  <button class="icon-button voice-button" id="voiceInputButton" type="button" title="語音輸入" aria-label="語音輸入"><i data-lucide="mic"></i></button>
+                </div>
                 <button class="primary-button" type="submit"><i data-lucide="send"></i>送出</button>
               </form>
             </section>
@@ -275,6 +281,21 @@
       </section>
     </main>
   </div>
+
+  <dialog class="consent-dialog" id="usageConsentDialog" aria-labelledby="usageConsentTitle">
+    <form method="dialog" class="consent-card" id="usageConsentForm">
+      <h2 id="usageConsentTitle">使用說明</h2>
+      <p>本系統是國立東華大學學習關懷預警系統，協助學生在學習遇到卡點時整理問題、形成下一步行動，並提供教師端必要的學習支持摘要。</p>
+      <p>本系統不是心理諮商、醫療或緊急服務；若遇立即人身安全或校園緊急事件，請直接聯絡 119、110、校安中心或校內相關單位。</p>
+      <p>登入後，你與東東的文字內容、語音轉文字內容、回覆時間與學習摘要會保存為學習支持紀錄，供你回顧與教師端必要追蹤使用。</p>
+      <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用與角色說明</a>
+      <label class="consent-line">
+        <input id="usageConsentCheck" type="checkbox" required>
+        <span>我已閱讀並了解以上說明</span>
+      </label>
+      <button class="primary-button consent-submit" id="usageConsentButton" type="submit" disabled>同意並開始使用</button>
+    </form>
+  </dialog>
 
   <dialog id="settingsDialog" class="settings-dialog">
     <form method="dialog">
