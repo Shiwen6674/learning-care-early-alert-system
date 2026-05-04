@@ -310,7 +310,7 @@
     if (hint) {
       hint.textContent = isRegister
         ? "第一次使用請建立學生帳號，安安會用這些資訊理解你的學院、系所與學習脈絡；之後請用同一個 email 登入。"
-        : "請用註冊時的 email 與密碼登入；安安會用同一個 email 計算每日 25 輪對話上限。";
+        : "請用註冊時的 email 與密碼登入。";
     }
     if (submit) submit.textContent = isRegister ? "完成註冊並和安安聊聊" : "登入並和安安聊聊";
   }
