@@ -1,10 +1,11 @@
-# 東華大學學生學習預警輔導系統
+# Learning Care Early Alert System (LCEAS)
 
-一個可部署到 GitHub Pages 的學生學習支持入口。學生可以在這裡整理學習困難、取得下一步建議；教師可以在教師端掌握學生近況、預警訊號與追蹤行動。
+東華大學學生學習預警輔導系統。學生可以和「東東」整理學習困難、取得下一步建議；教師可以在教師端掌握學生近況、預警訊號與追蹤行動。
 
 ## 已包含的內容
 
-- `index.html`：學生端、教師端、註冊登入與學習陪伴聊天入口。
+- `index.html`：學生端、教師端、註冊登入與東東學習陪伴聊天入口。
+- `learning care early alert system.html`：GitHub Pages 可直接開啟的 LCEAS 主頁。
 - `assets/css/styles.css`：前台視覺與響應式版面。
 - `assets/js/app.js`：前台 session、聊天流程、風險初判、教師儀表板與 GAS 同步。
 - `assets/js/ndhu-data.js`：東華八大學院與招生系所選單資料。

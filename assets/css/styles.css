@@ -261,6 +261,27 @@ h3 {
   font-size: 1.05rem;
 }
 
+.campus-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: 780px;
+  margin: 18px 0 2px;
+}
+
+.campus-link-row span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 10px;
+  border: 1px solid rgba(15, 118, 110, .24);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .72);
+  color: var(--teal-dark);
+  font-size: .9rem;
+  font-weight: 800;
+}
+
 .quick-need-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -281,6 +302,12 @@ h3 {
 
 .need-chip {
   text-align: left;
+  line-height: 1.45;
+}
+
+.need-chip:hover {
+  border-color: var(--teal);
+  background: #eef7f4;
 }
 
 .care-note {
@@ -421,6 +448,13 @@ textarea:focus {
   padding: 18px;
 }
 
+.campus-support-card ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #40505f;
+  line-height: 1.8;
+}
+
 .profile-card {
   display: flex;
   align-items: center;
@@ -546,6 +580,15 @@ meter {
 .recommendation-box ul {
   margin: 8px 0 0 18px;
   padding: 0;
+}
+
+.follow-up-line {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #6f4c10;
+  font-weight: 700;
 }
 
 .teacher-layout {

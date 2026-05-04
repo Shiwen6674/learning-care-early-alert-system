@@ -10,23 +10,23 @@
   };
 
   const quickNeeds = [
-    "我聽得懂上課，但作業寫不出來",
-    "考試快到了，不知道怎麼安排",
-    "我開始缺課或跟不上進度",
-    "我想問老師，但不知道怎麼開口",
-    "跨系或跨域課程有落差",
-    "讀很多次還是抓不到重點",
-    "時間被打工、社團或家務卡住",
-    "我需要有人幫我排下一步"
+    "期中快到了，我不知道先讀哪裡",
+    "作業一直拖，打開就想逃避",
+    "我有缺課，現在跟不上進度",
+    "想問老師，但不知道怎麼開口",
+    "跨域修課，先備知識有落差",
+    "讀很多次，還是抓不到重點",
+    "通勤、打工或社團把時間切碎了",
+    "我需要東東陪我排下一步"
   ];
 
   const supportOptions = [
-    "整理讀書計畫",
-    "向授課教師提問",
+    "請東東陪我排讀書計畫",
+    "幫我整理給老師的提問",
     "預約導師晤談",
-    "找助教或同儕討論",
+    "找助教或同學討論",
     "調整作業與考試策略",
-    "轉介學習或諮商資源"
+    "轉介東華學習或諮商資源"
   ];
 
   const urgentWords = ["自傷", "自殺", "不想活", "傷害自己", "傷害別人", "活不下去", "結束生命"];
@@ -199,11 +199,11 @@
     });
     $$("[data-student-only]").forEach((node) => node.classList.toggle("hidden", role !== "student"));
     $$("[data-teacher-only]").forEach((node) => node.classList.toggle("hidden", role !== "teacher"));
-    $("#authTitle").textContent = role === "student" ? "學生註冊 / 登入" : "教師註冊 / 登入";
+    $("#authTitle").textContent = role === "student" ? "東華學生登入" : "東華教師登入";
     $("#authHint").textContent = role === "student"
-      ? "留下基本資料後，你的學習近況可以被保存並持續追蹤。"
+      ? "進來後可以直接跟東東說最近卡住的課、作業、考試或生活節奏。"
       : "教師端會依授權範圍顯示學生摘要、預警層級與追蹤事項。";
-    $("#authSubmitText").textContent = role === "student" ? "進入學生入口" : "進入教師工作台";
+    $("#authSubmitText").textContent = role === "student" ? "進入東東陪聊" : "進入教師工作台";
   }
 
   function getAuthRole() {
@@ -218,7 +218,7 @@
     const user = {
       id: role === "student" ? safeText(form.get("studentId"), uid("student")) : safeText(form.get("teacherId"), uid("teacher")),
       role,
-      name: safeText(form.get("name"), role === "student" ? "東華學生" : "東華教師"),
+      name: safeText(form.get("name"), role === "student" ? "東華同學" : "東華教師"),
       email: safeText(form.get("email")),
       college: safeText(form.get("college")),
       department: safeText(form.get("department")),
@@ -240,7 +240,7 @@
     if (role === "student") {
       showView("student");
       renderStudentProfile();
-      showToast("已進入學生學習入口。");
+      showToast("東東準備好了，先從一句話開始就可以。");
     } else {
       showView("teacher");
       renderTeacherDashboard();
@@ -260,7 +260,7 @@
     const user = {
       id: uid("student"),
       role: "student",
-      name: "東華學生",
+      name: "東華同學",
       email: "",
       college: "人文社會科學學院",
       department: "尚未選擇",
@@ -291,7 +291,7 @@
   function renderStudentProfile() {
     const user = state.currentUser || ensureStudentSession();
     $("#studentAvatar").textContent = safeText(user.name, "學").slice(0, 1);
-    $("#studentName").textContent = safeText(user.name, "東華學生");
+    $("#studentName").textContent = safeText(user.name, "東華同學");
     $("#studentMeta").textContent = [user.college, user.department, user.year].filter(Boolean).join(" · ") || "東華大學";
     const latest = getLatestCheckin(user.id);
     updateStudentRisk(latest ? latest.analysis : null);
@@ -306,14 +306,14 @@
 
   function ensureChatIntro() {
     if ($("#chatLog").children.length) return;
-    addChatMessage("agent", "我是小東。你可以先說最困擾你的一件事，不需要一次講完整。我會先幫你整理問題，再一起決定下一步。");
-    addChatMessage("agent", "如果你願意，可以包含課程名稱、最近卡住的作業或考試、已經試過的方法，以及希望老師怎麼協助你。");
+    addChatMessage("agent", "我是東東，東華的學習陪伴窗口。你不用把事情講得很完整，先丟一句很亂的也可以，我會陪你慢慢整理。");
+    addChatMessage("agent", "你可以從「哪門課、哪個作業、哪次考試、哪個生活節奏卡住」任選一個開始。東東會接話，不會把你丟在半路。");
   }
 
   function addChatMessage(role, text) {
     const message = document.createElement("div");
     message.className = `message ${role === "user" ? "user" : "agent"}`;
-    const speaker = role === "user" ? "你" : "小東";
+    const speaker = role === "user" ? "你" : "東東";
     message.innerHTML = `<strong>${speaker}</strong><span>${escapeHtml(text).replace(/\n/g, "<br>")}</span>`;
     $("#chatLog").appendChild(message);
     $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
@@ -418,6 +418,7 @@
       tags: Array.from(tags).slice(0, 5),
       reasons,
       recommendations,
+      followUpQuestion: buildFollowUpQuestion(level, Array.from(tags), context),
       summary: summarizeNeed(context, Array.from(tags), level)
     };
   }
@@ -442,18 +443,18 @@
     if (level === "立即轉介") {
       return [
         "先確保安全：請立刻聯絡 119、110、校安中心、校內諮商資源，或請身邊可信任的人陪你。",
-        "今天不要獨自承受這件事，先讓一位教師、導師或家人知道你需要協助。",
-        "課業安排可以稍後處理，現在最重要的是安全與有人陪伴。"
+        "今天不要獨自承受這件事，先讓一位教師、導師、室友、家人或同學知道你需要協助。",
+        "課業可以晚一點再整理，現在最重要的是安全與有人陪你。"
       ];
     }
 
     const course = context.courseName ? `「${context.courseName}」` : "這門課";
     const steps = [];
     if (tags.includes("概念理解") || tags.includes("先備知識")) {
-      steps.push(`把 ${course} 最不懂的三個概念寫成問題，帶去問授課教師、助教或同學。`);
+      steps.push(`把 ${course} 最不懂的三個概念寫成問題，東東可以幫你改成問老師或助教的句子。`);
     }
     if (tags.includes("作業進度")) {
-      steps.push("把作業切成「已懂、卡住、需要求助」三欄，先完成能拿分的部分。");
+      steps.push("把作業切成「已懂、卡住、需要求助」三欄，先保住能拿分的部分。");
     }
     if (tags.includes("考試焦慮")) {
       steps.push("先排出兩個 40 分鐘複習時段，只處理最常出題或最能補分的單元。");
@@ -462,18 +463,42 @@
       steps.push("把接下來七天的固定行程列出來，先找出兩段可以穩定學習的時間。");
     }
     if (tags.includes("出缺席")) {
-      steps.push("今天先向導師或授課教師說明近況，請對方協助確認補救與追蹤方式。");
+      steps.push("今天先讓導師或授課教師知道你已經卡住，東東可以陪你整理一段不尷尬的開場。");
     }
     if (!steps.length) {
       steps.push("先寫下目前卡住的一句話，再補上你已經試過的方法。");
-      steps.push("選一位可以求助的人，今天先傳一封簡短訊息。");
+      steps.push("選一位可以求助的人，今天先傳一則很短的訊息。");
     }
     if (level === "優先關懷") {
-      steps.unshift("建議在三天內安排一次導師或授課教師晤談。");
+      steps.unshift("建議在三天內安排一次導師或授課教師晤談，先不用等到完全崩住才開口。");
     } else if (level === "觀察") {
       steps.unshift("建議一週內回來更新一次近況，確認方法是否有效。");
     }
     return steps.slice(0, 3);
+  }
+
+  function buildFollowUpQuestion(level, tags, context) {
+    if (level === "立即轉介") {
+      return "你現在身邊有沒有一個可以立刻陪你的人？可以只回「有」或「沒有」。";
+    }
+    if (tags.includes("作業進度")) {
+      return "這份作業現在最卡的是看不懂題目、找不到方法，還是時間不夠？";
+    }
+    if (tags.includes("考試焦慮")) {
+      return "如果只先救一個單元，你覺得最該先救哪一章？";
+    }
+    if (tags.includes("出缺席")) {
+      return "缺掉的課裡，你最想先補哪一次或哪個主題？";
+    }
+    if (tags.includes("時間管理")) {
+      return "你這週哪兩段時間比較可能安靜讀 30 分鐘？";
+    }
+    if (tags.includes("概念理解") || tags.includes("先備知識")) {
+      return "你可以丟一個最不懂的名詞或題目給東東，我們先拆第一步。";
+    }
+    return context.courseName
+      ? `關於「${context.courseName}」，你想先處理作業、考試、上課聽不懂，還是問老師這件事？`
+      : "你想先跟東東說哪一門課，或哪件最近最煩的學習任務？";
   }
 
   function summarizeNeed(context, tags, level) {
@@ -485,14 +510,14 @@
   function buildAgentResponse(analysis) {
     const intro = analysis.level === "立即轉介"
       ? "我先把最重要的事放前面：你的安全比課業更優先。"
-      : "我先幫你整理一下，這不是你一個人硬撐就一定要解掉的問題。";
-    const reason = analysis.reasons.length ? `我看到的重點是：${analysis.reasons.join("；")}。` : "";
+      : "我有聽到，你現在不是沒有努力，而是事情已經卡成一團，需要有人陪你拆小。";
+    const reason = analysis.reasons.length ? `東東先抓到的重點是：${analysis.reasons.join("；")}。` : "";
     const steps = analysis.recommendations.map((item, index) => `${index + 1}. ${item}`).join("\n");
-    return `${intro}\n${reason}\n接下來可以先做這幾步：\n${steps}`;
+    return `${intro}\n${reason}\n我們先不要一次解全部，先做這幾步就好：\n${steps}\n\n我想接著問你一個小問題：${analysis.followUpQuestion}`;
   }
 
   function updateStudentRisk(analysis) {
-    const effective = analysis || { level: "穩定", score: 12, reasons: ["先描述今天遇到的學習困難，系統會幫你整理重點。"] };
+    const effective = analysis || { level: "穩定", score: 12, reasons: ["先跟東東說一件最近卡住的事，東東會陪你整理重點。"] };
     $("#studentRiskLabel").textContent = effective.level;
     $("#studentRiskMeter").value = effective.score;
     $("#studentRiskReason").textContent = effective.reasons.join("；");
@@ -501,12 +526,13 @@
   function renderStudentRecommendation(analysis) {
     const box = $("#studentRecommendation");
     if (!analysis) {
-      box.innerHTML = "填寫近況或開始對話後，這裡會整理你可以先做的下一步。";
+      box.innerHTML = "跟東東聊一句，或填一下右邊近況，這裡就會整理你可以先做的小步驟。";
       return;
     }
     box.innerHTML = `
       <strong>${escapeHtml(analysis.summary)}</strong>
       <ul>${analysis.recommendations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+      <p class="follow-up-line">東東接著想問：${escapeHtml(analysis.followUpQuestion || "你想先處理哪一件事？")}</p>
     `;
   }
 
@@ -541,7 +567,7 @@
     updateStudentRisk(analysis);
     renderStudentRecommendation(analysis);
     syncWrite("submitCheckin", { checkin });
-    showToast("已保存學習近況，教師端會看見摘要與追蹤重點。");
+    showToast("已保存，東東也把重點整理成導師看得懂的追蹤摘要。");
   }
 
   function toRiskSignal(user, analysis, source) {
@@ -564,7 +590,7 @@
   function renderTeacherDashboard(remoteRecords) {
     const user = state.currentUser;
     if (user && user.role === "teacher") {
-      $("#teacherGreeting").textContent = `${safeText(user.name, "教師")}，這裡整理需要被看見的學習訊號`;
+      $("#teacherGreeting").textContent = `${safeText(user.name, "教師")}，這裡整理東華學生需要被看見的學習訊號`;
     }
 
     const records = Array.isArray(remoteRecords) ? remoteRecords : buildTeacherRecords();
