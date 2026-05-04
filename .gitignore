@@ -1,0 +1,9 @@
+desktop.ini
+Thumbs.db
+node_modules/
+tmp/
+output/
+.playwright-cli/
+scripts/*.mjs
+.env
+.clasp.json

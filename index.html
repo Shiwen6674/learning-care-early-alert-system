@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>東華大學學生學習預警輔導系統</title>
+  <meta name="description" content="東華大學學生學習預警輔導系統，提供學生學習困難陪伴、教師預警輔導與追蹤管理。">
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="assets/css/styles.css">
+  <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script defer src="assets/js/ndhu-data.js"></script>
+  <script defer src="assets/js/app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#" aria-label="返回系統首頁">
+        <span class="brand-mark">東</span>
+        <span>
+          <strong>東華大學學生學習預警輔導系統</strong>
+          <small>Learning Care Early Alert</small>
+        </span>
+      </a>
+      <nav class="top-actions" aria-label="主要功能">
+        <button class="icon-button" id="homeButton" type="button" title="首頁" aria-label="首頁"><i data-lucide="layout-dashboard"></i></button>
+        <button class="ghost-button" id="studentDoorButton" type="button"><i data-lucide="graduation-cap"></i>學生入口</button>
+        <button class="ghost-button" id="teacherDoorButton" type="button"><i data-lucide="clipboard-list"></i>教師入口</button>
+        <button class="icon-button" id="settingsButton" type="button" title="連線設定" aria-label="連線設定"><i data-lucide="settings"></i></button>
+        <button class="ghost-button hidden" id="logoutButton" type="button"><i data-lucide="log-out"></i>登出</button>
+      </nav>
+    </header>
+
+    <main>
+      <section class="entry-layout view" id="entryView">
+        <article class="companion-panel">
+          <div class="companion-visual" aria-hidden="true">
+            <img src="assets/img/learning-companion.png" alt="">
+          </div>
+          <div class="panel-eyebrow">今天先從一件事開始</div>
+          <h1>把卡住的地方說出來，系統會陪你整理下一步。</h1>
+          <p class="lead">你可以談課程、作業、考試、時間安排、轉銜落差或不知道該問誰。送出後，系統會整理成一份可追蹤的學習近況，必要時讓導師看見需要協助的重點。</p>
+          <div class="quick-need-grid" id="landingQuickNeeds"></div>
+          <div class="care-note">
+            <i data-lucide="heart-handshake"></i>
+            <span>如果你正處於立即危險或可能傷害自己，請先聯絡 119、110、校安中心或校內諮商資源；這裡會協助學習支持，但不取代緊急協助。</span>
+          </div>
+        </article>
+
+        <aside class="auth-card" aria-label="註冊與登入">
+          <div class="segmented" role="tablist" aria-label="使用者角色">
+            <button class="active" type="button" data-auth-role="student" role="tab" aria-selected="true">學生</button>
+            <button type="button" data-auth-role="teacher" role="tab" aria-selected="false">教師</button>
+          </div>
+
+          <form class="auth-form" id="authForm">
+            <div class="form-title">
+              <h2 id="authTitle">學生註冊 / 登入</h2>
+              <p id="authHint">留下基本資料後，你的學習近況可以被保存並持續追蹤。</p>
+            </div>
+            <div class="form-grid">
+              <label>
+                <span>姓名</span>
+                <input name="name" autocomplete="name" required>
+              </label>
+              <label>
+                <span>信箱</span>
+                <input name="email" type="email" autocomplete="email" required>
+              </label>
+              <label data-student-only>
+                <span>學號</span>
+                <input name="studentId" autocomplete="off">
+              </label>
+              <label data-teacher-only class="hidden">
+                <span>教師代碼或員編</span>
+                <input name="teacherId" autocomplete="off">
+              </label>
+              <label>
+                <span>學院</span>
+                <select name="college" id="collegeSelect" required></select>
+              </label>
+              <label>
+                <span>系所</span>
+                <select name="department" id="departmentSelect" required></select>
+              </label>
+              <label data-student-only>
+                <span>年級</span>
+                <select name="year">
+                  <option value="一年級">一年級</option>
+                  <option value="二年級">二年級</option>
+                  <option value="三年級">三年級</option>
+                  <option value="四年級">四年級</option>
+                  <option value="延畢或其他">延畢或其他</option>
+                  <option value="研究所">研究所</option>
+                </select>
+              </label>
+              <label data-student-only>
+                <span>導師或常聯絡教師信箱</span>
+                <input name="advisorEmail" type="email" autocomplete="email">
+              </label>
+              <label data-teacher-only class="hidden">
+                <span>教師查詢 token</span>
+                <input name="teacherToken" type="password" autocomplete="current-password">
+              </label>
+            </div>
+            <label class="consent-line">
+              <input name="consent" type="checkbox" required>
+              <span>我了解系統會保存學習輔導必要資料，教師端只呈現追蹤所需摘要。</span>
+            </label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit"><i data-lucide="arrow-right"></i><span id="authSubmitText">進入學生入口</span></button>
+              <button class="secondary-button" type="button" id="continueLocalButton"><i data-lucide="sparkles"></i>先整理學習困難</button>
+            </div>
+          </form>
+        </aside>
+      </section>
+
+      <section class="student-layout view hidden" id="studentView" aria-label="學生學習入口">
+        <aside class="student-sidebar">
+          <div class="profile-card">
+            <div class="avatar" id="studentAvatar">學</div>
+            <div>
+              <strong id="studentName">學生</strong>
+              <span id="studentMeta">東華大學</span>
+            </div>
+          </div>
+          <div class="progress-card">
+            <span class="label">目前關懷層級</span>
+            <strong id="studentRiskLabel">穩定</strong>
+            <meter id="studentRiskMeter" min="0" max="100" value="12"></meter>
+            <p id="studentRiskReason">先描述今天遇到的學習困難，系統會幫你整理重點。</p>
+          </div>
+          <div class="support-card">
+            <h3>可以一起處理的事</h3>
+            <div id="studentNeedButtons" class="need-list"></div>
+          </div>
+        </aside>
+
+        <article class="student-main">
+          <div class="section-heading">
+            <div>
+              <span class="panel-eyebrow">學習陪伴窗口</span>
+              <h2>小東會先聽你說，再幫你整理可行的下一步。</h2>
+            </div>
+            <button class="secondary-button" id="saveCheckinButton" type="button"><i data-lucide="save"></i>保存近況</button>
+          </div>
+
+          <div class="chat-and-form">
+            <section class="chat-card" aria-label="學習陪伴對話">
+              <div class="chat-log" id="chatLog" aria-live="polite"></div>
+              <form class="chat-composer" id="chatForm">
+                <label class="sr-only" for="chatInput">描述你的學習困難</label>
+                <textarea id="chatInput" rows="3" placeholder="例如：我最近統計課聽得懂公式，但作業不知道從哪裡開始，期中考也快到了。"></textarea>
+                <button class="primary-button" type="submit"><i data-lucide="send"></i>送出</button>
+              </form>
+            </section>
+
+            <section class="checkin-card" aria-label="學習近況自評">
+              <h3>學習近況</h3>
+              <div class="form-grid compact">
+                <label>
+                  <span>課程或任務</span>
+                  <input id="courseName" placeholder="課程名稱、作業或考試">
+                </label>
+                <label>
+                  <span>目前最接近的狀態</span>
+                  <select id="difficultyType"></select>
+                </label>
+                <label>
+                  <span>困難程度</span>
+                  <input id="difficultyScore" type="range" min="1" max="5" value="3">
+                </label>
+                <label>
+                  <span>出席與參與</span>
+                  <select id="attendanceStatus">
+                    <option value="穩定參與">穩定參與</option>
+                    <option value="偶爾跟不上">偶爾跟不上</option>
+                    <option value="近期缺課或遲交">近期缺課或遲交</option>
+                    <option value="已經中斷一段時間">已經中斷一段時間</option>
+                  </select>
+                </label>
+                <label>
+                  <span>接下來一週最需要</span>
+                  <select id="preferredSupport"></select>
+                </label>
+                <label>
+                  <span>希望追蹤日期</span>
+                  <input id="followUpDate" type="date">
+                </label>
+              </div>
+              <div class="recommendation-box" id="studentRecommendation"></div>
+            </section>
+          </div>
+        </article>
+      </section>
+
+      <section class="teacher-layout view hidden" id="teacherView" aria-label="教師預警工作台">
+        <div class="teacher-header">
+          <div>
+            <span class="panel-eyebrow">教師預警工作台</span>
+            <h2 id="teacherGreeting">掌握需要被看見的學習訊號</h2>
+          </div>
+          <div class="teacher-actions">
+            <button class="secondary-button" id="refreshTeacherButton" type="button"><i data-lucide="refresh-cw"></i>更新資料</button>
+            <button class="primary-button" id="exportCsvButton" type="button"><i data-lucide="download"></i>匯出摘要</button>
+          </div>
+        </div>
+
+        <div class="kpi-grid" id="teacherKpis"></div>
+
+        <div class="teacher-workspace">
+          <section class="student-table-card">
+            <div class="table-toolbar">
+              <label>
+                <span>搜尋學生</span>
+                <input id="studentSearch" placeholder="姓名、學號、課程或困難類型">
+              </label>
+              <label>
+                <span>關懷層級</span>
+                <select id="riskFilter">
+                  <option value="all">全部</option>
+                  <option value="立即轉介">立即轉介</option>
+                  <option value="優先關懷">優先關懷</option>
+                  <option value="觀察">觀察</option>
+                  <option value="穩定">穩定</option>
+                </select>
+              </label>
+            </div>
+            <div class="student-list" id="studentRiskList"></div>
+          </section>
+
+          <aside class="student-detail-card" id="studentDetail">
+            <div class="empty-detail">
+              <i data-lucide="panel-right-open"></i>
+              <h3>選擇一位學生</h3>
+              <p>這裡會顯示近期摘要、風險原因、建議行動與教師追蹤紀錄。</p>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="settingsDialog" class="settings-dialog">
+    <form method="dialog">
+      <div class="dialog-header">
+        <h2>連線設定</h2>
+        <button class="icon-button" value="cancel" aria-label="關閉"><i data-lucide="x"></i></button>
+      </div>
+      <label>
+        <span>Google Apps Script Web App URL</span>
+        <input id="gasEndpointInput" type="url" placeholder="貼上校方部署的 Web App URL">
+      </label>
+      <label>
+        <span>教師查詢 token</span>
+        <input id="teacherTokenInput" type="password" autocomplete="current-password">
+      </label>
+      <p class="dialog-note">連線資訊只保存在這台裝置。正式部署時，教師權限仍需由後端驗證。</p>
+      <div class="form-actions">
+        <button class="secondary-button" value="cancel">取消</button>
+        <button class="primary-button" id="saveSettingsButton" value="default"><i data-lucide="check"></i>儲存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+</body>
+</html>
