@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="assets/css/styles.css">
   <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script defer src="assets/js/ndhu-data.js"></script>
   <script defer src="assets/js/app.js"></script>
 </head>
@@ -72,11 +73,15 @@
 
       <section class="view chat-view hidden" id="chatView" aria-label="安安對話">
         <div class="chat-shell">
-          <aside class="anan-card" aria-label="安安">
-            <img src="assets/img/anan-avatar.svg" alt="安安">
-          </aside>
-
           <section class="chat-card">
+            <div class="chat-toolbar" aria-label="對話操作">
+              <button class="tool-button" id="backToEntryButton" type="button"><i data-lucide="arrow-left"></i>返回登入頁</button>
+              <div class="chat-toolbar-group">
+                <button class="tool-button" id="clearChatButton" type="button"><i data-lucide="eraser"></i>清除對話</button>
+                <button class="tool-button" id="downloadTxtButton" type="button" disabled><i data-lucide="file-text"></i>下載 TXT</button>
+                <button class="tool-button" id="downloadPdfButton" type="button" disabled><i data-lucide="file-down"></i>下載 PDF</button>
+              </div>
+            </div>
             <div class="chat-log" id="chatLog" aria-live="polite"></div>
             <form class="chat-composer" id="chatForm">
               <label class="sr-only" for="chatInput">輸入訊息</label>

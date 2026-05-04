@@ -5,6 +5,8 @@ function doGet(e) {
   try {
     if (action === "llmChat") {
       result = chatWithOpenAI_(parseJson_(params.payload || "{}", {}));
+    } else if (action === "reportSummary") {
+      result = summarizeConversation_(parseJson_(params.payload || "{}", {}));
     } else {
       result = {
         ok: true,
@@ -26,7 +28,9 @@ function doPost(e) {
     const action = String(payload.action || "");
     const result = action === "llmChat"
       ? chatWithOpenAI_(payload.input || payload)
-      : { ok: true, message: "安安 AI 代理已就緒。" };
+      : action === "reportSummary"
+        ? summarizeConversation_(payload.input || payload)
+        : { ok: true, message: "安安 AI 代理已就緒。" };
     return output_(result, payload.callback);
   } catch (err) {
     return output_({ ok: false, error: err && err.message ? err.message : String(err) }, payload.callback);
@@ -59,7 +63,7 @@ function chatWithOpenAI_(input) {
     "隱私邊界：不要宣稱你已保存、通報或交給教師；不要主動談教師後台或資料保存。若學生直接詢問資料處理，只用一句話簡短說明目前頁面沒有教師後台寫入。",
     "專業邊界：你提供學習陪伴與溫和引導，不取代校內專業諮詢或正式課業評量；除非學生主動提到急迫危險，不要主動使用驚嚇或危機字眼。",
     "語氣：繁體中文、自然、柔和、像可靠的大姐姐或學習導師。若學生提供稱呼，第一則回覆自然使用一次該稱呼，之後適度使用，不要過度親暱或重複。",
-    "格式：通常 2 到 3 個短段落就好；只有在學生需要整理多件事時才用短條列。每次最多給 1 到 2 個小行動，最後一定用一個自然、好回答的問題接住對話。",
+    "格式：通常 2 到 3 個短段落、220 字以內就好；只有在學生需要整理多件事時才用短條列。每次最多給 1 到 2 個小行動，最後一定用一個自然、好回答的完整問題接住對話，不要讓句子中斷。",
     "學生提供的背景：" + (profile || "未提供"),
     "最近對話：" + JSON.stringify(history),
     "學生最新訊息：" + String(input.message || "")
@@ -77,7 +81,7 @@ function chatWithOpenAI_(input) {
         content: [{ type: "input_text", text: prompt }]
       }
     ],
-    max_output_tokens: 900
+    max_output_tokens: 1600
   };
 
   const response = UrlFetchApp.fetch("https://api.openai.com/v1/responses", {
@@ -96,6 +100,63 @@ function chatWithOpenAI_(input) {
     ok: true,
     model: model,
     reply: reply
+  };
+}
+
+function summarizeConversation_(input) {
+  const apiKey = getScriptProperty_(["OPENAI_API_KEY", "API_KEY", "OPENAI_KEY"]);
+  if (!apiKey) throw new Error("尚未設定 OPENAI_API_KEY 或 API_KEY。");
+  const model = PropertiesService.getScriptProperties().getProperty("OPENAI_MODEL") || "gpt-5-mini";
+  const context = input.context || {};
+  const messages = Array.isArray(input.messages) ? input.messages : [];
+  const profile = [
+    context.nickname ? "姓名或稱呼：" + context.nickname : "",
+    context.college ? "學院：" + context.college : "",
+    context.department ? "科系：" + context.department : "",
+    input.sessionNumber ? "對話次數：第 " + input.sessionNumber + " 次" : ""
+  ].filter(Boolean).join("；");
+
+  const prompt = [
+    "請為學生整理一段「對使用者說」的學習對話綜合分析。",
+    "請使用繁體中文與第二人稱，語氣溫和、具體、有支持感，不要像診斷報告，也不要像客服範本。",
+    "內容應包含：學生這次主要談到的學習卡點、可能正在卡住的原因、已經出現的努力或線索、接下來一個最小可行方向。",
+    "不要新增學生沒有提過的重大風險，不要做心理或醫療診斷，不要提教師後台或資料保存。",
+    "格式：3 到 5 個短段落，可以自然稱呼學生一次，不要條列成制式清單；請完整收句，不要讓最後一句中斷。",
+    "學生背景：" + (profile || "未提供"),
+    "逐筆對話：" + JSON.stringify(messages)
+  ].join("\n");
+
+  const payload = {
+    model: model,
+    input: [
+      {
+        role: "system",
+        content: [{ type: "input_text", text: "你是安安的學習對話整理助手。你要把完整對話整理成給學生本人閱讀的溫和綜合分析。" }]
+      },
+      {
+        role: "user",
+        content: [{ type: "input_text", text: prompt }]
+      }
+    ],
+    max_output_tokens: 1600
+  };
+
+  const response = UrlFetchApp.fetch("https://api.openai.com/v1/responses", {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + apiKey },
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  });
+  const status = response.getResponseCode();
+  const data = JSON.parse(response.getContentText() || "{}");
+  if (status >= 300) throw new Error(data.error && data.error.message ? data.error.message : "OpenAI 回覆失敗");
+  const summary = extractOutputText_(data);
+  if (!summary) throw new Error("OpenAI 未回傳可顯示的文字。");
+  return {
+    ok: true,
+    model: model,
+    summary: summary
   };
 }
 
