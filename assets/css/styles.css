@@ -621,6 +621,12 @@ textarea:focus {
   break-after: auto;
 }
 
+.report-analysis-page {
+  min-height: auto;
+  page-break-after: auto;
+  break-after: auto;
+}
+
 .report-cover {
   display: flex;
   flex-direction: column;

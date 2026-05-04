@@ -509,7 +509,7 @@
             <div><dt>科系</dt><dd>${escapeHtml(meta.department)}</dd></div>
           </dl>
         </section>
-        <section class="report-page">
+        <section class="report-page report-analysis-page">
           <h2>綜合分析</h2>
           <div class="report-analysis">${paragraphHtml(analysis)}</div>
         </section>
