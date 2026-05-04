@@ -38,7 +38,7 @@
             </section>
             <section>
               <h2>二、資料使用目的</h2>
-              <p>您在本服務中輸入的訊息，會用於產生當次 AI 回覆，協助安安理解您的學習需求、問題脈絡與希望獲得的協助。</p>
+              <p>您在本服務中輸入的訊息，會用於產生當次 AI 回覆，協助安安理解您的學習需求、問題脈絡與希望獲得的協助；學生基本資料與對話內容也會寫入學校設定的試算表，作為學習關懷紀錄。</p>
               <p>本服務使用資料的目的包括：</p>
               <ol>
                 <li>回應您當次提出的學習問題。</li>
@@ -58,7 +58,7 @@
               <p>您勾選同意並開始使用本服務，即表示您已了解並同意：</p>
               <ol>
                 <li>本服務可依據您輸入的訊息產生 AI 回覆。</li>
-                <li>您在本服務中輸入的訊息，將用於當次 AI 回覆與短期對話脈絡。</li>
+                <li>您在本服務中輸入的訊息，將用於當次 AI 回覆、短期對話脈絡與學習關懷紀錄。</li>
                 <li>安安提供的是學習陪伴與一般性建議，不取代教師、導師、諮商心理師、校內行政單位或其他專業人員的正式協助。</li>
                 <li>若涉及正式課業、行政、心理諮商或緊急協助事項，您應尋求校內外適當專業資源。</li>
               </ol>
@@ -82,18 +82,36 @@
             </div>
           </section>
 
-          <form class="profile-panel" id="profileForm">
+          <form class="profile-panel auth-form" id="authForm">
+            <div class="auth-mode" role="tablist" aria-label="學生帳號動作">
+              <button class="active" type="button" data-auth-mode="register" role="tab" aria-selected="true">註冊</button>
+              <button type="button" data-auth-mode="login" role="tab" aria-selected="false">登入</button>
+            </div>
+            <div class="form-title">
+              <h2 id="authTitle">學生註冊</h2>
+              <p id="authHint">第一次使用請建立學生帳號，安安會用這些資訊理解你的學院、系所與學習脈絡；之後請用同一個 email 登入。</p>
+            </div>
             <div class="field-grid">
-              <label>
-                <span>學院</span>
-                <select id="collegeSelect" name="college" required></select>
+              <label data-register-only>
+                <span>姓名或稱呼</span>
+                <input id="nicknameInput" name="nickname" type="text" autocomplete="name" placeholder="輸入你希望安安使用的稱呼" required>
               </label>
               <label>
-                <span>系所</span>
-                <select id="departmentSelect" name="department" required></select>
+                <span>Email</span>
+                <input id="emailInput" name="email" type="email" autocomplete="email" placeholder="輸入學校或常用 email" required>
               </label>
             </div>
             <div class="field-grid">
+              <label>
+                <span>密碼</span>
+                <input id="passwordInput" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="至少 8 個字元" required>
+              </label>
+              <label data-register-only>
+                <span>確認密碼</span>
+                <input id="confirmPasswordInput" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="再次輸入密碼" required>
+              </label>
+            </div>
+            <div class="field-grid" data-register-only>
               <label>
                 <span>年級</span>
                 <select id="gradeSelect" name="grade" required>
@@ -111,11 +129,21 @@
                 <input id="studentIdInput" name="studentId" type="text" autocomplete="off" placeholder="輸入學號" required>
               </label>
             </div>
-            <label>
-              <span>安安可以怎麼稱呼你</span>
-              <input id="nicknameInput" name="nickname" type="text" autocomplete="name" placeholder="輸入你希望安安使用的稱呼" required>
+            <div class="field-grid" data-register-only>
+              <label>
+                <span>學院</span>
+                <select id="collegeSelect" name="college" required></select>
+              </label>
+              <label>
+                <span>系所</span>
+                <select id="departmentSelect" name="department" required></select>
+              </label>
+            </div>
+            <label class="consent-line auth-consent" data-register-only>
+              <input id="recordConsentCheck" name="recordConsent" type="checkbox" required>
+              <span>我了解學生與安安的對話會寫入學校設定的試算表，以利後續學習關懷紀錄。</span>
             </label>
-            <button class="primary-button profile-submit" type="submit"><i data-lucide="sparkles"></i>開始和安安聊聊</button>
+            <button class="primary-button profile-submit" type="submit"><i data-lucide="sparkles"></i><span id="authSubmitText">完成註冊並和安安聊聊</span></button>
           </form>
         </div>
       </section>
@@ -145,6 +173,13 @@
       </section>
     </main>
   </div>
+
+  <dialog class="limit-dialog" id="limitDialog">
+    <form method="dialog">
+      <p>同學您好，您的問題可以進一步洽詢學校導師、行政人員或心理諮商中心，相信可以獲得更好的協助。</p>
+      <button class="primary-button" value="ok">我知道了</button>
+    </form>
+  </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 </body>

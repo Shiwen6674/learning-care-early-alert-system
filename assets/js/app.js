@@ -5,14 +5,22 @@
   const SETTINGS_KEY = "ndhu.learning.anan.settings.v2";
   const CONSENT_KEY = "ndhu.learning.anan.usageConsent.v4";
   const SESSION_COUNT_KEY = "ndhu.learning.anan.sessionCount.v1";
+  const AUTH_STORE_KEY = "ndhu.learning.anan.students.v1";
+  const CURRENT_USER_KEY = "ndhu.learning.anan.currentStudent.v1";
+  const DAILY_TURN_KEY = "ndhu.learning.anan.dailyTurns.v1";
+  const DAILY_TURN_LIMIT = 25;
+  const LIMIT_DIALOG_TEXT = "同學您好，您的問題可以進一步洽詢學校導師、行政人員或心理諮商中心，相信可以獲得更好的協助。";
   const DEFAULT_SETTINGS = { gasEndpoint: GAS_ENDPOINT };
   const state = {
     settings: Object.assign({}, DEFAULT_SETTINGS),
     messages: [],
     sessionNumber: 0,
     reportAnalysis: "",
+    students: [],
+    authMode: "register",
     profile: {
       nickname: "",
+      email: "",
       studentId: "",
       grade: "",
       college: "",
@@ -38,6 +46,42 @@
   function safeText(value, fallback = "") {
     const text = value === undefined || value === null ? "" : String(value).trim();
     return text || fallback;
+  }
+
+  function normalizeEmail(value) {
+    return safeText(value).toLowerCase();
+  }
+
+  function uid(prefix) {
+    const random = window.crypto && crypto.getRandomValues
+      ? Array.from(crypto.getRandomValues(new Uint16Array(2))).map((n) => n.toString(36)).join("")
+      : Math.random().toString(36).slice(2, 8);
+    return `${prefix}_${Date.now().toString(36)}_${random}`;
+  }
+
+  async function digestText(value) {
+    if (window.crypto && crypto.subtle && window.TextEncoder) {
+      const data = new TextEncoder().encode(value);
+      const digest = await crypto.subtle.digest("SHA-256", data);
+      return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    }
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+      hash = ((hash << 5) - hash) + value.charCodeAt(index);
+      hash |= 0;
+    }
+    return `fallback-${Math.abs(hash).toString(16)}`;
+  }
+
+  function publicStudent(student) {
+    const copy = Object.assign({}, student || {});
+    delete copy.passwordHash;
+    delete copy.passwordSalt;
+    return copy;
+  }
+
+  async function hashSecret(secret, salt) {
+    return digestText(`${salt}:${secret}`);
   }
 
   function iconRefresh() {
@@ -70,6 +114,44 @@
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
   }
 
+  function loadAuthState() {
+    try {
+      const stored = JSON.parse(localStorage.getItem(AUTH_STORE_KEY) || "[]");
+      state.students = Array.isArray(stored) ? stored : [];
+    } catch (err) {
+      state.students = [];
+    }
+
+    try {
+      const current = JSON.parse(sessionStorage.getItem(CURRENT_USER_KEY) || "null");
+      if (current && current.email) state.profile = Object.assign({}, state.profile, current);
+    } catch (err) {
+      sessionStorage.removeItem(CURRENT_USER_KEY);
+    }
+  }
+
+  function saveStudents() {
+    localStorage.setItem(AUTH_STORE_KEY, JSON.stringify(state.students));
+  }
+
+  function findStudent(email) {
+    const normalized = normalizeEmail(email);
+    return state.students.find((student) => normalizeEmail(student.email) === normalized);
+  }
+
+  function setCurrentStudent(student) {
+    const publicProfile = publicStudent(student);
+    state.profile = {
+      nickname: safeText(publicProfile.nickname || publicProfile.name, "同學"),
+      email: normalizeEmail(publicProfile.email),
+      studentId: normalizedStudentId(publicProfile.studentId || publicProfile.id),
+      grade: safeText(publicProfile.grade),
+      college: safeText(publicProfile.college),
+      department: safeText(publicProfile.department)
+    };
+    sessionStorage.setItem(CURRENT_USER_KEY, JSON.stringify(state.profile));
+  }
+
   function showToast(message) {
     const region = $("#toastRegion");
     if (!region) return;
@@ -85,7 +167,10 @@
       view.classList.toggle("hidden", view.id !== viewId);
     });
     if (viewId === "entryView") {
-      window.setTimeout(() => $("#nicknameInput").focus(), 80);
+      window.setTimeout(() => {
+        const firstInput = state.authMode === "login" ? $("#emailInput") : $("#nicknameInput");
+        if (firstInput) firstInput.focus();
+      }, 80);
     }
     if (viewId === "chatView") {
       window.setTimeout(() => $("#chatInput").focus(), 80);
@@ -98,12 +183,48 @@
   }
 
   function nextSessionNumber() {
-    const studentId = normalizedStudentId() || "UNKNOWN";
-    const key = `${SESSION_COUNT_KEY}.${studentId}`;
+    const identity = normalizeEmail(state.profile.email) || normalizedStudentId() || "UNKNOWN";
+    const key = `${SESSION_COUNT_KEY}.${identity}`;
     const current = Number.parseInt(localStorage.getItem(key) || "0", 10);
     const next = Number.isFinite(current) ? current + 1 : 1;
     localStorage.setItem(key, String(next));
     return next;
+  }
+
+  function todayKey() {
+    return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Taipei" });
+  }
+
+  function dailyTurnStorageKey(email = state.profile.email) {
+    return `${DAILY_TURN_KEY}.${normalizeEmail(email) || "unknown"}.${todayKey()}`;
+  }
+
+  function getDailyTurnCount(email = state.profile.email) {
+    const count = Number.parseInt(localStorage.getItem(dailyTurnStorageKey(email)) || "0", 10);
+    return Number.isFinite(count) ? count : 0;
+  }
+
+  function setDailyTurnCount(count, email = state.profile.email) {
+    localStorage.setItem(dailyTurnStorageKey(email), String(Math.max(0, Number(count) || 0)));
+  }
+
+  function incrementDailyTurnCount(email = state.profile.email) {
+    const next = getDailyTurnCount(email) + 1;
+    setDailyTurnCount(next, email);
+    return next;
+  }
+
+  function hasReachedDailyLimit() {
+    return getDailyTurnCount() >= DAILY_TURN_LIMIT;
+  }
+
+  function showLimitDialog() {
+    const dialog = $("#limitDialog");
+    if (dialog && typeof dialog.showModal === "function") {
+      dialog.showModal();
+      return;
+    }
+    window.alert(LIMIT_DIALOG_TEXT);
   }
 
   function setupUsageConsent() {
@@ -159,15 +280,42 @@
     collegeSelect.addEventListener("change", updateDepartments);
   }
 
-  function handleProfileSubmit(event) {
-    event.preventDefault();
-    state.profile = {
-      nickname: safeText($("#nicknameInput").value, "同學"),
-      studentId: normalizedStudentId($("#studentIdInput").value),
-      grade: safeText($("#gradeSelect").value),
-      college: safeText($("#collegeSelect").value),
-      department: safeText($("#departmentSelect").value)
-    };
+  function setAuthMode(mode) {
+    state.authMode = mode === "login" ? "login" : "register";
+    document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+      const active = button.dataset.authMode === state.authMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    syncAuthFormState();
+  }
+
+  function syncAuthFormState() {
+    const isRegister = state.authMode === "register";
+    document.querySelectorAll("[data-register-only]").forEach((node) => {
+      node.classList.toggle("hidden", !isRegister);
+      node.querySelectorAll("input, select, textarea").forEach((control) => {
+        if (control.dataset.wasRequired === undefined) control.dataset.wasRequired = control.required ? "true" : "false";
+        control.disabled = !isRegister;
+        control.required = isRegister && control.dataset.wasRequired === "true";
+      });
+    });
+
+    const password = $("#passwordInput");
+    if (password) password.autocomplete = isRegister ? "new-password" : "current-password";
+    const title = $("#authTitle");
+    const hint = $("#authHint");
+    const submit = $("#authSubmitText");
+    if (title) title.textContent = isRegister ? "學生註冊" : "學生登入";
+    if (hint) {
+      hint.textContent = isRegister
+        ? "第一次使用請建立學生帳號，安安會用這些資訊理解你的學院、系所與學習脈絡；之後請用同一個 email 登入。"
+        : "請用註冊時的 email 與密碼登入；安安會用同一個 email 計算每日 25 輪對話上限。";
+    }
+    if (submit) submit.textContent = isRegister ? "完成註冊並和安安聊聊" : "登入並和安安聊聊";
+  }
+
+  function prepareChatSession() {
     state.sessionNumber = nextSessionNumber();
     state.messages = [];
     state.reportAnalysis = "";
@@ -175,6 +323,80 @@
     $("#chatInput").placeholder = `${state.profile.nickname}，輸入你想和安安說的話...`;
     updateExportState();
     showView("chatView");
+  }
+
+  async function handleAuthSubmit(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const email = normalizeEmail(form.get("email"));
+    const password = String(form.get("password") || "");
+    if (!email) {
+      showToast("請先輸入 email。");
+      $("#emailInput").focus();
+      return;
+    }
+    if (password.length < 8) {
+      showToast("密碼至少需要 8 個字元。");
+      $("#passwordInput").focus();
+      return;
+    }
+
+    if (state.authMode === "login") {
+      const student = findStudent(email);
+      if (!student) {
+        showToast("這個 email 尚未註冊，請先建立學生帳號。");
+        setAuthMode("register");
+        return;
+      }
+      const passwordHash = await hashSecret(password, student.passwordSalt || "");
+      if (passwordHash !== student.passwordHash) {
+        showToast("密碼不正確，請再試一次。");
+        $("#passwordInput").focus();
+        return;
+      }
+      student.lastLoginAt = new Date().toISOString();
+      saveStudents();
+      setCurrentStudent(student);
+      $("#passwordInput").value = "";
+      prepareChatSession();
+      showToast("已登入，可以開始和安安聊聊。");
+      return;
+    }
+
+    const confirmPassword = String(form.get("confirmPassword") || "");
+    if (password !== confirmPassword) {
+      showToast("兩次輸入的密碼不一致。");
+      $("#confirmPasswordInput").focus();
+      return;
+    }
+    if (findStudent(email)) {
+      showToast("這個 email 已註冊，請改用登入。");
+      setAuthMode("login");
+      return;
+    }
+
+    const passwordSalt = uid("salt");
+    const student = {
+      id: normalizedStudentId(form.get("studentId")) || uid("student"),
+      nickname: safeText(form.get("nickname"), "同學"),
+      email,
+      studentId: normalizedStudentId(form.get("studentId")),
+      grade: safeText(form.get("grade")),
+      college: safeText(form.get("college")),
+      department: safeText(form.get("department")),
+      consent: form.get("recordConsent") === "on",
+      passwordSalt,
+      passwordHash: await hashSecret(password, passwordSalt),
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString()
+    };
+    state.students.push(student);
+    saveStudents();
+    setCurrentStudent(student);
+    $("#passwordInput").value = "";
+    $("#confirmPasswordInput").value = "";
+    prepareChatSession();
+    showToast("註冊完成，可以開始和安安聊聊。");
   }
 
   function addMessage(role, text, timestamp = new Date().toISOString(), meta = "") {
@@ -208,6 +430,12 @@
     return node;
   }
 
+  function renderConversation() {
+    const log = $("#chatLog");
+    log.innerHTML = "";
+    state.messages.forEach((message) => renderMessage(message));
+  }
+
   function updateMessageNode(node, text, timestamp = new Date().toISOString(), meta = "") {
     if (!node) return;
     node.classList.remove("pending");
@@ -229,14 +457,33 @@
       input.focus();
       return;
     }
+    if (!normalizeEmail(state.profile.email)) {
+      showToast("請先用 email 登入或註冊。");
+      returnToEntry();
+      return;
+    }
+    if (hasReachedDailyLimit()) {
+      showLimitDialog();
+      return;
+    }
 
-    addMessage("user", text);
+    const submittedInputMethod = nextInputMethod;
+    const userMessage = addMessage("user", text);
     input.value = "";
     input.dataset.inputMethod = "text";
     nextInputMethod = "text";
 
     const pending = renderPendingMessage();
-    const reply = await resolveAgentReply(text);
+    const reply = await resolveAgentReply(text, submittedInputMethod);
+    if (reply.limitReached) {
+      const index = state.messages.indexOf(userMessage);
+      if (index >= 0) state.messages.splice(index, 1);
+      if (pending && pending.parentNode) pending.parentNode.removeChild(pending);
+      renderConversation();
+      updateExportState();
+      showLimitDialog();
+      return;
+    }
     const replyMessage = {
       role: "agent",
       text: reply.text,
@@ -245,6 +492,11 @@
       sequence: state.messages.length + 1
     };
     state.messages.push(replyMessage);
+    if (reply.source === "llm") {
+      const dailyTurnCount = Number(reply.dailyTurnCount || 0);
+      if (dailyTurnCount > 0) setDailyTurnCount(dailyTurnCount);
+      else incrementDailyTurnCount();
+    }
     state.reportAnalysis = "";
     updateMessageNode(pending, replyMessage.text, replyMessage.timestamp, replyMessage.meta);
     updateExportState();
@@ -263,7 +515,7 @@
     return node;
   }
 
-  async function resolveAgentReply(text) {
+  async function resolveAgentReply(text, inputMethod = "text") {
     if (!state.settings.gasEndpoint) {
       return { text: "目前沒有設定 GAS Web App URL，無法取得 AI 回覆。", source: "system" };
     }
@@ -279,13 +531,21 @@
       message: text,
       context: state.profile,
       history,
-      clientTime: new Date().toISOString()
+      clientTime: new Date().toISOString(),
+      inputMethod,
+      sessionNumber: state.sessionNumber,
+      dailyTurnLimit: DAILY_TURN_LIMIT,
+      clientDailyTurnCount: getDailyTurnCount()
     };
 
     try {
       const data = await jsonp("llmChat", { payload: JSON.stringify(payload) }, 30000);
-      if (data && data.ok && safeText(data.reply)) return { text: safeText(data.reply), source: "llm" };
+      if (data && data.limitReached) return { limitReached: true };
+      if (data && data.ok && safeText(data.reply)) {
+        return { text: safeText(data.reply), source: "llm", dailyTurnCount: data.dailyTurnCount };
+      }
       if (data && data.error) {
+        if (data.error === "DAILY_LIMIT_REACHED" || data.error === LIMIT_DIALOG_TEXT) return { limitReached: true };
         return { text: `目前沒有收到 AI 回覆。GAS 回傳：${data.error}`, source: "system" };
       }
     } catch (err) {
@@ -381,6 +641,7 @@
       title: reportTitle(),
       date: reportDate(),
       name: state.profile.nickname || "未填寫",
+      email: state.profile.email || "未填寫",
       studentId: state.profile.studentId || "未填寫",
       grade: state.profile.grade || "未填寫",
       college: state.profile.college || "未填寫",
@@ -461,6 +722,7 @@
       "",
       `日期：${meta.date}`,
       `姓名：${meta.name}`,
+      `Email：${meta.email}`,
       `學號：${meta.studentId}`,
       `年級：${meta.grade}`,
       `學院：${meta.college}`,
@@ -497,23 +759,29 @@
     return `
       <div class="report-document">
         <section class="report-page report-cover">
-          <div class="report-emblem">LCEAS</div>
-          <h1>國立東華大學學習關懷預警系統</h1>
-          <h2>${escapeHtml(meta.title)}</h2>
-          <dl>
-            <div><dt>日期</dt><dd>${escapeHtml(meta.date)}</dd></div>
-            <div><dt>姓名</dt><dd>${escapeHtml(meta.name)}</dd></div>
-            <div><dt>學號</dt><dd>${escapeHtml(meta.studentId)}</dd></div>
-            <div><dt>年級</dt><dd>${escapeHtml(meta.grade)}</dd></div>
-            <div><dt>學院</dt><dd>${escapeHtml(meta.college)}</dd></div>
-            <div><dt>科系</dt><dd>${escapeHtml(meta.department)}</dd></div>
-          </dl>
+          <img class="report-cover-photo" src="assets/img/ndhu-campus-lake.jpg" alt="國立東華大學校園湖畔">
+          <div class="report-cover-content">
+            <div class="report-emblem">LCEAS</div>
+            <h1>國立東華大學學習關懷預警系統</h1>
+            <h2>${escapeHtml(meta.title)}</h2>
+            <dl>
+              <div><dt>日期</dt><dd>${escapeHtml(meta.date)}</dd></div>
+              <div><dt>姓名</dt><dd>${escapeHtml(meta.name)}</dd></div>
+              <div><dt>Email</dt><dd>${escapeHtml(meta.email)}</dd></div>
+              <div><dt>學號</dt><dd>${escapeHtml(meta.studentId)}</dd></div>
+              <div><dt>年級</dt><dd>${escapeHtml(meta.grade)}</dd></div>
+              <div><dt>學院</dt><dd>${escapeHtml(meta.college)}</dd></div>
+              <div><dt>科系</dt><dd>${escapeHtml(meta.department)}</dd></div>
+            </dl>
+          </div>
         </section>
         <section class="report-page report-analysis-page">
+          <div class="report-section-label">Learning Care Summary</div>
           <h2>綜合分析</h2>
           <div class="report-analysis">${paragraphHtml(analysis)}</div>
         </section>
         <section class="report-page report-dialogue">
+          <div class="report-section-label">Conversation Transcript</div>
           <h2>詳細對話過程</h2>
           ${rows}
         </section>
@@ -529,6 +797,20 @@
     }
     win.document.write(`<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><title>LCEAS PDF</title><link rel="stylesheet" href="assets/css/styles.css"></head><body>${html}<script>window.onload=()=>window.print();</script></body></html>`);
     win.document.close();
+  }
+
+  function addPdfPageNumbers(pdf) {
+    if (!pdf || !pdf.internal) return;
+    const totalPages = pdf.internal.getNumberOfPages();
+    const pageSize = pdf.internal.pageSize;
+    const width = typeof pageSize.getWidth === "function" ? pageSize.getWidth() : pageSize.width;
+    const height = typeof pageSize.getHeight === "function" ? pageSize.getHeight() : pageSize.height;
+    for (let page = 3; page <= totalPages; page += 1) {
+      pdf.setPage(page);
+      pdf.setFontSize(10);
+      pdf.setTextColor(99, 118, 115);
+      pdf.text(String(page - 2), width / 2, height - 28, { align: "center" });
+    }
   }
 
   async function downloadPdfReport() {
@@ -552,7 +834,7 @@
         openPrintableReport(report.outerHTML);
         return;
       }
-      await window.html2pdf()
+      const worker = window.html2pdf()
         .set({
           margin: [48, 0, 48, 0],
           filename: `LCEAS-${fileSafeName(meta.name)}-${fileSafeName(meta.studentId)}-${state.sessionNumber || 1}.pdf`,
@@ -562,7 +844,9 @@
           pagebreak: { mode: ["css", "legacy"], avoid: [".report-turn"] }
         })
         .from(report)
-        .save();
+        .toPdf();
+      await worker.get("pdf").then(addPdfPageNumbers);
+      await worker.save();
     } finally {
       report.remove();
       updateExportState();
@@ -654,7 +938,10 @@
   function bindEvents() {
     const brand = $(".brand");
     if (brand) brand.addEventListener("click", (event) => event.preventDefault());
-    $("#profileForm").addEventListener("submit", handleProfileSubmit);
+    document.querySelectorAll("[data-auth-mode]").forEach((button) => {
+      button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
+    });
+    $("#authForm").addEventListener("submit", handleAuthSubmit);
     $("#chatForm").addEventListener("submit", handleChatSubmit);
     $("#backToEntryButton").addEventListener("click", returnToEntry);
     $("#clearChatButton").addEventListener("click", clearConversation);
@@ -664,8 +951,10 @@
 
   function init() {
     loadSettings();
+    loadAuthState();
     populateProfileOptions();
     bindEvents();
+    setAuthMode("register");
     setupUsageConsent();
     setupVoiceInput();
     updateExportState();
