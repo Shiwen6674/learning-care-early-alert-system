@@ -83,15 +83,17 @@
           </section>
 
           <form class="profile-panel" id="profileForm">
-            <label>
-              <span>安安可以怎麼稱呼你</span>
-              <input id="nicknameInput" name="nickname" type="text" autocomplete="name" placeholder="輸入你希望安安使用的稱呼" required>
-            </label>
             <div class="field-grid">
               <label>
-                <span>學號</span>
-                <input id="studentIdInput" name="studentId" type="text" autocomplete="off" placeholder="輸入學號" required>
+                <span>學院</span>
+                <select id="collegeSelect" name="college" required></select>
               </label>
+              <label>
+                <span>系所</span>
+                <select id="departmentSelect" name="department" required></select>
+              </label>
+            </div>
+            <div class="field-grid">
               <label>
                 <span>年級</span>
                 <select id="gradeSelect" name="grade" required>
@@ -104,17 +106,15 @@
                   <option value="博士班">博士班</option>
                 </select>
               </label>
-            </div>
-            <div class="field-grid">
               <label>
-                <span>學院</span>
-                <select id="collegeSelect" name="college" required></select>
-              </label>
-              <label>
-                <span>系所</span>
-                <select id="departmentSelect" name="department" required></select>
+                <span>學號</span>
+                <input id="studentIdInput" name="studentId" type="text" autocomplete="off" placeholder="輸入學號" required>
               </label>
             </div>
+            <label>
+              <span>安安可以怎麼稱呼你</span>
+              <input id="nicknameInput" name="nickname" type="text" autocomplete="name" placeholder="輸入你希望安安使用的稱呼" required>
+            </label>
             <button class="primary-button profile-submit" type="submit"><i data-lucide="sparkles"></i>開始和安安聊聊</button>
           </form>
         </div>

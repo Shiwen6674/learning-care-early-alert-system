@@ -136,7 +136,9 @@ button:disabled {
 .consent-card {
   width: min(680px, 100%);
   max-height: min(820px, calc(100vh - 56px));
-  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: clamp(30px, 5vw, 52px);
   text-align: center;
   background:
@@ -159,8 +161,12 @@ button:disabled {
 }
 
 .consent-body {
+  flex: 1 1 auto;
   max-width: 590px;
+  min-height: 180px;
   margin: 0 auto;
+  padding-right: 12px;
+  overflow: auto;
   text-align: left;
 }
 
@@ -200,6 +206,7 @@ button:disabled {
 }
 
 .consent-line {
+  flex: 0 0 auto;
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -268,6 +275,7 @@ button:disabled {
 }
 
 .consent-submit {
+  flex: 0 0 auto;
   min-width: 210px;
   margin: 0 auto;
 }
