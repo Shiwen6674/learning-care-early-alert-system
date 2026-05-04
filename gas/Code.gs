@@ -67,6 +67,9 @@ function doPost(e) {
     lock.waitLock(10000);
     try {
       if (action === "register") result = register_(payload.user || {});
+      else if (action === "login") result = login_(payload.user || {});
+      else if (action === "requestPasswordReset") result = requestPasswordReset_(payload.user || {}, payload.resetCode || "", payload.resetExpiresAt || "");
+      else if (action === "passwordReset") result = passwordReset_(payload.user || {});
       else if (action === "submitCheckin") result = submitCheckin_(payload.checkin || {});
       else if (action === "submitConversation") result = submitConversation_(payload.conversation || {});
       else if (action === "teacherNote") result = teacherNote_(payload.note || {});
@@ -135,6 +138,44 @@ function register_(user) {
   } else {
     upsertByKey_(SHEETS.students, "student_id", normalizeStudent_(user));
   }
+  return { ok: true, role: role };
+}
+
+function login_(user) {
+  const role = String(user.role || "student");
+  const email = String(user.email || "");
+  if (!email) throw new Error("ç¼ºå°‘ç™»å…¥ä¿¡ç®±ã€‚");
+  if (role === "teacher") touchLastSeen_(SHEETS.teachers, "email", email);
+  else touchLastSeen_(SHEETS.students, "email", email);
+  return { ok: true, role: role };
+}
+
+function requestPasswordReset_(user, resetCode, resetExpiresAt) {
+  const email = String(user.email || "").trim();
+  if (!email) throw new Error("ç¼ºå°‘å¯†ç¢¼ä¿®æ”¹ä¿¡ç®±ã€‚");
+  if (!resetCode) throw new Error("ç¼ºå°‘å¯†ç¢¼ä¿®æ”¹èªè­‰ç¢¼ã€‚");
+  const expires = resetExpiresAt ? new Date(resetExpiresAt) : new Date(Date.now() + 15 * 60 * 1000);
+  const subject = "LCEAS å¯†ç¢¼ä¿®æ”¹èªè­‰ç¢¼";
+  const body = [
+    "ä½ å¥½ï¼Œ",
+    "",
+    "ä½ å·²ç”³è«‹ LCEAS åœ‹ç«‹æ±è¯å¤§å­¸å­¸ç¿’ç…§è­·é è­¦ç³»çµ±çš„å¯†ç¢¼ä¿®æ”¹èªè­‰ã€‚",
+    "èªè­‰ç¢¼ï¼š" + resetCode,
+    "æœ‰æ•ˆæ™‚é–“ï¼š" + Utilities.formatDate(expires, Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm"),
+    "",
+    "è‹¥ä½ æ²’æœ‰ç”³è«‹ä¿®æ”¹å¯†ç¢¼ï¼Œå¯ä»¥å¿½ç•¥é€™å°ä¿¡ã€‚"
+  ].join("\n");
+  MailApp.sendEmail(email, subject, body);
+  audit_(email, user.role || "", "requestPasswordResetEmail", true, "sent");
+  return { ok: true, email: email, expiresAt: expires.toISOString() };
+}
+
+function passwordReset_(user) {
+  const role = String(user.role || "student");
+  const email = String(user.email || "");
+  if (!email) throw new Error("ç¼ºå°‘å¯†ç¢¼ä¿®æ”¹ä¿¡ç®±ã€‚");
+  if (role === "teacher") touchLastSeen_(SHEETS.teachers, "email", email);
+  else touchLastSeen_(SHEETS.students, "email", email);
   return { ok: true, role: role };
 }
 
@@ -308,6 +349,21 @@ function upsertByKey_(sheetName, keyHeader, object) {
   });
   if (targetRow > 0) sheet.getRange(targetRow, 1, 1, headers.length).setValues([rowValues]);
   else sheet.getRange(sheet.getLastRow() + 1, 1, 1, headers.length).setValues([rowValues]);
+}
+
+function touchLastSeen_(sheetName, keyHeader, keyValue) {
+  const headers = HEADERS[sheetName];
+  const sheet = getSheet_(sheetName, headers);
+  const keyIndex = headers.indexOf(keyHeader);
+  const seenIndex = headers.indexOf("last_seen_at");
+  if (keyIndex < 0 || seenIndex < 0) return;
+  if (sheet.getLastRow() <= 1) return;
+  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+  values.forEach(function (row, index) {
+    if (String(row[keyIndex]).trim().toLowerCase() === String(keyValue || "").trim().toLowerCase()) {
+      sheet.getRange(index + 2, seenIndex + 1).setValue(new Date());
+    }
+  });
 }
 
 function buildTeacherDashboard_() {

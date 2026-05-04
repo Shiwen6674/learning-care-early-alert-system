@@ -39,13 +39,7 @@
           </figure>
           <div class="learning-brief">
             <div class="panel-eyebrow">東華大學 Learning Care Early Alert System</div>
-            <h1>把學習卡住的地方說出來，東東陪你整理下一步。</h1>
             <p class="lead">同學你好，我是東東。當你覺得課程進度、作業、考試準備、跨域修課或時間安排有點卡住，可以先用自己的話跟我說。我會先聽懂你的情境，再把重點整理成可行的小步驟；需要時，也會協助生成讓導師或授課老師快速掌握的學習摘要。</p>
-            <ul class="brief-points" aria-label="系統簡要說明">
-              <li><i data-lucide="messages-square"></i><span><strong>先聊近況</strong><small>不用整理好才開口，東東會陪你把話接下去。</small></span></li>
-              <li><i data-lucide="list-checks"></i><span><strong>整理卡點</strong><small>把課業、時間與學習策略拆成可以先做的一小步。</small></span></li>
-              <li><i data-lucide="users-round"></i><span><strong>連結老師</strong><small>讓教師端看見重點，提早給出合適的支持。</small></span></li>
-            </ul>
           </div>
         </article>
 
@@ -56,18 +50,30 @@
           </div>
 
           <form class="auth-form" id="authForm">
+            <div class="auth-mode" role="tablist" aria-label="帳號動作">
+              <button class="active" type="button" data-auth-mode="register" role="tab" aria-selected="true">註冊</button>
+              <button type="button" data-auth-mode="login" role="tab" aria-selected="false">登入</button>
+            </div>
             <div class="form-title">
               <h2 id="authTitle">學生註冊 / 登入</h2>
               <p id="authHint">第一次使用請留下基本資料，東東會用這些資訊理解你的學院、系所與學習脈絡；之後就能直接接續你的學習紀錄。</p>
             </div>
             <div class="form-grid">
-              <label>
+              <label data-register-only>
                 <span>姓名</span>
                 <input name="name" autocomplete="name" required>
               </label>
               <label>
                 <span>信箱</span>
                 <input name="email" type="email" autocomplete="email" required>
+              </label>
+              <label>
+                <span>密碼</span>
+                <input name="password" type="password" autocomplete="new-password" minlength="8" required>
+              </label>
+              <label data-register-only>
+                <span>確認密碼</span>
+                <input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
               </label>
               <label data-student-only>
                 <span>學號</span>
@@ -77,11 +83,11 @@
                 <span>教師代碼或員編</span>
                 <input name="teacherId" autocomplete="off">
               </label>
-              <label>
+              <label data-register-only>
                 <span>學院</span>
                 <select name="college" id="collegeSelect" required></select>
               </label>
-              <label>
+              <label data-register-only>
                 <span>系所</span>
                 <select name="department" id="departmentSelect" required></select>
               </label>
@@ -105,13 +111,31 @@
                 <input name="teacherToken" type="password" autocomplete="current-password">
               </label>
             </div>
-            <label class="consent-line">
+            <label class="consent-line" data-register-only>
               <input name="consent" type="checkbox" required>
               <span>我了解 LCEAS 會保存本次學習紀錄，用於後續陪伴與教師端必要追蹤。</span>
             </label>
+            <div class="auth-links hidden" id="loginAssist">
+              <button class="link-button" id="forgotPasswordButton" type="button">忘記密碼？寄送修改認證</button>
+            </div>
+            <div class="reset-panel hidden" id="resetPanel" aria-live="polite">
+              <h3>修改密碼認證</h3>
+              <p id="resetHint">請先輸入信箱，再按「寄送修改認證」。</p>
+              <div class="form-grid compact">
+                <label>
+                  <span>認證碼</span>
+                  <input id="resetCodeInput" autocomplete="one-time-code" inputmode="numeric">
+                </label>
+                <label>
+                  <span>新密碼</span>
+                  <input id="resetPasswordInput" type="password" autocomplete="new-password" minlength="8">
+                </label>
+              </div>
+              <button class="secondary-button" id="resetPasswordButton" type="button"><i data-lucide="key-round"></i>更新密碼</button>
+            </div>
             <div class="form-actions">
               <button class="primary-button" type="submit"><i data-lucide="arrow-right"></i><span id="authSubmitText">進入東東陪聊</span></button>
-              <button class="secondary-button" type="button" id="continueLocalButton"><i data-lucide="sparkles"></i>先找東東聊聊</button>
+              <button class="secondary-button" type="button" id="continueLocalButton"><i data-lucide="sparkles"></i>登入後找東東聊聊</button>
             </div>
           </form>
         </aside>

@@ -269,48 +269,6 @@ h3 {
   margin-bottom: 18px;
 }
 
-.brief-points {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.brief-points li {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  min-width: 0;
-  padding: 12px;
-  border: 1px solid #dce8e3;
-  border-radius: 8px;
-  background: #f5faf8;
-}
-
-.brief-points svg {
-  flex: 0 0 auto;
-  width: 19px;
-  height: 19px;
-  color: var(--teal-dark);
-}
-
-.brief-points strong,
-.brief-points small {
-  display: block;
-}
-
-.brief-points strong {
-  margin-bottom: 3px;
-  color: var(--ink);
-}
-
-.brief-points small {
-  color: var(--muted);
-  line-height: 1.55;
-}
-
 .quick-need-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -386,6 +344,28 @@ h3 {
   box-shadow: 0 6px 14px rgba(24, 33, 43, .08);
 }
 
+.auth-mode {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.auth-mode button {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 40px;
+  background: white;
+  color: var(--muted);
+}
+
+.auth-mode button.active {
+  border-color: rgba(15, 118, 110, .35);
+  background: #eef7f4;
+  color: var(--teal-dark);
+  font-weight: 800;
+}
+
 .form-title p,
 .dialog-note,
 .empty-detail p,
@@ -457,6 +437,38 @@ textarea:focus {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.auth-links {
+  margin: 6px 0 14px;
+}
+
+.link-button {
+  border: 0;
+  background: transparent;
+  color: var(--teal-dark);
+  font-weight: 800;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.reset-panel {
+  margin: 12px 0 16px;
+  padding: 14px;
+  border: 1px solid #dce8e3;
+  border-radius: 8px;
+  background: #f8fbfa;
+}
+
+.reset-panel h3 {
+  margin-bottom: 6px;
+}
+
+.reset-panel p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 12px;
 }
 
 .student-layout {
@@ -873,7 +885,6 @@ meter {
   }
 
   .quick-need-grid,
-  .brief-points,
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -910,7 +921,6 @@ meter {
   }
 
   .quick-need-grid,
-  .brief-points,
   .form-grid,
   .form-grid.compact,
   .kpi-grid,

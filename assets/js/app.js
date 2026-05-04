@@ -41,6 +41,7 @@
     currentUser: null,
     settings: Object.assign({}, DEFAULT_CONFIG)
   };
+  let authMode = "register";
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -57,6 +58,56 @@
   function safeText(value, fallback = "") {
     const text = value === undefined || value === null ? "" : String(value).trim();
     return text || fallback;
+  }
+
+  function normalizeEmail(value) {
+    return safeText(value).toLowerCase();
+  }
+
+  function publicUser(user) {
+    const copy = Object.assign({}, user || {});
+    delete copy.passwordHash;
+    delete copy.passwordSalt;
+    delete copy.resetCodeHash;
+    delete copy.resetSalt;
+    delete copy.resetExpiresAt;
+    return copy;
+  }
+
+  function findUser(role, email) {
+    const normalized = normalizeEmail(email);
+    return state.users.find((entry) => entry.role === role && normalizeEmail(entry.email) === normalized);
+  }
+
+  function isAuthenticatedCurrentUser(role) {
+    if (!state.currentUser || state.currentUser.role !== role || !state.currentUser.email) return false;
+    const storedUser = findUser(role, state.currentUser.email);
+    return Boolean(storedUser && storedUser.passwordHash);
+  }
+
+  function makeResetCode() {
+    const values = new Uint32Array(1);
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(values);
+    const number = values[0] || Math.floor(Math.random() * 900000);
+    return String(100000 + (number % 900000));
+  }
+
+  async function digestText(value) {
+    if (window.crypto && crypto.subtle && window.TextEncoder) {
+      const data = new TextEncoder().encode(value);
+      const digest = await crypto.subtle.digest("SHA-256", data);
+      return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    }
+    let hash = 0;
+    for (let index = 0; index < value.length; index += 1) {
+      hash = ((hash << 5) - hash) + value.charCodeAt(index);
+      hash |= 0;
+    }
+    return `fallback-${Math.abs(hash).toString(16)}`;
+  }
+
+  async function hashSecret(secret, salt) {
+    return digestText(`${salt}:${secret}`);
   }
 
   function uid(prefix) {
@@ -129,6 +180,17 @@
     window.setTimeout(() => toast.remove(), 3600);
   }
 
+  function clearAuthSecrets() {
+    ["password", "confirmPassword"].forEach((name) => {
+      const input = $(`[name='${name}']`);
+      if (input) input.value = "";
+    });
+    ["resetCodeInput", "resetPasswordInput"].forEach((id) => {
+      const input = $(`#${id}`);
+      if (input) input.value = "";
+    });
+  }
+
   function iconRefresh() {
     if (window.lucide) window.lucide.createIcons();
   }
@@ -196,19 +258,29 @@
     });
   }
 
+  function bindAuthModeTabs() {
+    $$("[data-auth-mode]").forEach((button) => {
+      button.addEventListener("click", () => setAuthMode(button.dataset.authMode));
+    });
+  }
+
   function setAuthRole(role) {
     $$("[data-auth-role]").forEach((button) => {
       const active = button.dataset.authRole === role;
       button.classList.toggle("active", active);
       button.setAttribute("aria-selected", active ? "true" : "false");
     });
-    $$("[data-student-only]").forEach((node) => node.classList.toggle("hidden", role !== "student"));
-    $$("[data-teacher-only]").forEach((node) => node.classList.toggle("hidden", role !== "teacher"));
-    $("#authTitle").textContent = role === "student" ? "學生註冊 / 登入" : "教師工作台登入";
-    $("#authHint").textContent = role === "student"
-      ? "第一次使用請留下基本資料，東東會用這些資訊理解你的學院、系所與學習脈絡；之後就能直接接續你的學習紀錄。"
-      : "教師端會依授權範圍顯示學生學習摘要、關懷層級與後續追蹤事項。";
-    $("#authSubmitText").textContent = role === "student" ? "進入東東陪聊" : "進入教師工作台";
+    syncAuthFormState();
+  }
+
+  function setAuthMode(mode) {
+    authMode = mode === "login" ? "login" : "register";
+    $$("[data-auth-mode]").forEach((button) => {
+      const active = button.dataset.authMode === authMode;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    syncAuthFormState();
   }
 
   function getAuthRole() {
@@ -216,41 +288,221 @@
     return active ? active.dataset.authRole : "student";
   }
 
-  function handleAuthSubmit(event) {
+  function getAuthMode() {
+    return authMode;
+  }
+
+  function syncAuthFormState() {
+    const role = getAuthRole();
+    const isRegister = getAuthMode() === "register";
+    const registerNodes = $$("[data-register-only]");
+    const studentNodes = $$("[data-student-only]");
+    const teacherNodes = $$("[data-teacher-only]");
+
+    function setNodeState(node, visible) {
+      node.classList.toggle("hidden", !visible);
+      $$("input, select, textarea", node).forEach((control) => {
+        if (control.dataset.wasRequired === undefined) control.dataset.wasRequired = control.required ? "true" : "false";
+        control.disabled = !visible;
+        control.required = visible && control.dataset.wasRequired === "true";
+      });
+    }
+
+    registerNodes.forEach((node) => setNodeState(node, isRegister));
+    studentNodes.forEach((node) => setNodeState(node, isRegister && role === "student"));
+    teacherNodes.forEach((node) => setNodeState(node, isRegister && role === "teacher"));
+    $("#loginAssist").classList.toggle("hidden", isRegister);
+    $("#resetPanel").classList.toggle("hidden", isRegister || !$("#resetPanel").dataset.open);
+
+    const passwordInput = $("[name='password']");
+    passwordInput.autocomplete = isRegister ? "new-password" : "current-password";
+    $("#authTitle").textContent = role === "student"
+      ? (isRegister ? "學生註冊" : "學生登入")
+      : (isRegister ? "教師註冊" : "教師登入");
+    $("#authHint").textContent = role === "student"
+      ? (isRegister
+        ? "第一次使用請建立帳號，東東會用學院、系所與年級理解你的學習脈絡，之後所有聊天都會保存在你的學習紀錄中。"
+        : "請先登入，東東才會開啟聊天並保存完整對話紀錄。")
+      : (isRegister
+        ? "教師第一次使用請建立帳號，之後可進入教師工作台查看學生學習摘要與追蹤事項。"
+        : "請登入教師帳號，進入教師工作台查看已授權的學生學習紀錄。");
+    $("#authSubmitText").textContent = role === "student"
+      ? (isRegister ? "完成註冊並找東東" : "登入並找東東")
+      : (isRegister ? "完成教師註冊" : "登入教師工作台");
+  }
+
+  async function handleAuthSubmit(event) {
     event.preventDefault();
     const role = getAuthRole();
+    const mode = getAuthMode();
     const form = new FormData(event.currentTarget);
-    const user = {
-      id: role === "student" ? safeText(form.get("studentId"), uid("student")) : safeText(form.get("teacherId"), uid("teacher")),
+    const email = normalizeEmail(form.get("email"));
+    const password = String(form.get("password") || "");
+
+    if (!email) {
+      showToast("請先輸入信箱。");
+      return;
+    }
+    if (password.length < 8) {
+      showToast("密碼至少需要 8 個字元。");
+      return;
+    }
+
+    if (mode === "login") {
+      const storedUser = findUser(role, email);
+      if (!storedUser) {
+        showToast("這個信箱尚未註冊，請先建立帳號。");
+        setAuthMode("register");
+        return;
+      }
+      if (!storedUser.passwordHash || !storedUser.passwordSalt) {
+        showToast("這個帳號尚未設定密碼，請使用忘記密碼建立新密碼。");
+        return;
+      }
+      const passwordHash = await hashSecret(password, storedUser.passwordSalt);
+      if (passwordHash !== storedUser.passwordHash) {
+        showToast("密碼不正確，請再試一次，或使用忘記密碼。");
+        return;
+      }
+      storedUser.lastLoginAt = new Date().toISOString();
+      upsertUser(storedUser);
+      setCurrentUser(publicUser(storedUser));
+      saveState();
+      clearAuthSecrets();
+      syncWrite("login", { user: publicUser(storedUser) });
+      if (role === "student") {
+        showView("student");
+        showToast("已登入，東東會保存這次的聊天紀錄。");
+      } else {
+        showView("teacher");
+        showToast("已登入教師工作台。");
+      }
+      return;
+    }
+
+    if (password !== String(form.get("confirmPassword") || "")) {
+      showToast("兩次輸入的密碼不一致。");
+      return;
+    }
+
+    const existing = findUser(role, email);
+    if (existing && existing.passwordHash) {
+      showToast("這個信箱已註冊，請改用登入。");
+      setAuthMode("login");
+      return;
+    }
+
+    const passwordSalt = uid("salt");
+    const passwordHash = await hashSecret(password, passwordSalt);
+    const user = Object.assign({}, existing || {}, {
+      id: role === "student" ? safeText(form.get("studentId"), existing ? existing.id : uid("student")) : safeText(form.get("teacherId"), existing ? existing.id : uid("teacher")),
       role,
       name: safeText(form.get("name"), role === "student" ? "東華同學" : "東華教師"),
-      email: safeText(form.get("email")),
+      email,
       college: safeText(form.get("college")),
       department: safeText(form.get("department")),
       year: safeText(form.get("year")),
       advisorEmail: safeText(form.get("advisorEmail")),
       teacherToken: safeText(form.get("teacherToken")) || state.settings.teacherToken,
       consent: form.get("consent") === "on",
+      passwordSalt,
+      passwordHash,
+      resetCodeHash: "",
+      resetSalt: "",
+      resetExpiresAt: "",
       updatedAt: new Date().toISOString()
-    };
+    });
 
     upsertUser(user);
     if (user.teacherToken) {
       state.settings.teacherToken = user.teacherToken;
       saveSettings();
     }
-    setCurrentUser(user);
+    setCurrentUser(publicUser(user));
     saveState();
-    syncWrite("register", { user });
+    clearAuthSecrets();
+    syncWrite("register", { user: publicUser(user) });
     if (role === "student") {
       showView("student");
-      renderStudentProfile();
-      showToast("東東準備好了，先從一句話開始就可以。");
+      showToast("註冊完成。現在開始和東東的每一次對話都會保存到你的學習紀錄。");
     } else {
       showView("teacher");
-      renderTeacherDashboard();
-      showToast("已進入教師預警工作台。");
+      showToast("教師帳號已建立，已進入工作台。");
     }
+  }
+
+  async function requestPasswordReset() {
+    const role = getAuthRole();
+    const email = normalizeEmail($("[name='email']").value);
+    if (!email) {
+      showToast("請先輸入註冊信箱。");
+      $("[name='email']").focus();
+      return;
+    }
+    const user = findUser(role, email);
+    if (!user) {
+      showToast("查無此信箱，請先確認角色與信箱，或改用註冊。");
+      return;
+    }
+    const code = makeResetCode();
+    const salt = uid("reset");
+    user.resetSalt = salt;
+    user.resetCodeHash = await hashSecret(code, salt);
+    user.resetExpiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    upsertUser(user);
+    saveState();
+    syncWrite("requestPasswordReset", {
+      user: publicUser(user),
+      resetCode: code,
+      resetExpiresAt: user.resetExpiresAt
+    });
+    $("#resetPanel").dataset.open = "true";
+    $("#resetPanel").classList.remove("hidden");
+    $("#resetHint").textContent = state.settings.gasEndpoint
+      ? `修改認證已寄到 ${email}，請在 15 分鐘內輸入認證碼與新密碼。`
+      : `修改認證已建立。本機模式認證碼：${code}。正式上線時可在連線設定接上 GAS，讓認證碼寄到信箱。`;
+    $("#resetCodeInput").focus();
+    iconRefresh();
+  }
+
+  async function applyPasswordReset() {
+    const role = getAuthRole();
+    const email = normalizeEmail($("[name='email']").value);
+    const code = safeText($("#resetCodeInput").value);
+    const password = String($("#resetPasswordInput").value || "");
+    const user = findUser(role, email);
+    if (!user || !user.resetCodeHash || !user.resetSalt) {
+      showToast("請先寄送修改認證。");
+      return;
+    }
+    if (new Date(user.resetExpiresAt).getTime() < Date.now()) {
+      showToast("認證碼已逾時，請重新寄送。");
+      return;
+    }
+    if (password.length < 8) {
+      showToast("新密碼至少需要 8 個字元。");
+      return;
+    }
+    const codeHash = await hashSecret(code, user.resetSalt);
+    if (codeHash !== user.resetCodeHash) {
+      showToast("認證碼不正確，請確認信件內容。");
+      return;
+    }
+    user.passwordSalt = uid("salt");
+    user.passwordHash = await hashSecret(password, user.passwordSalt);
+    user.resetCodeHash = "";
+    user.resetSalt = "";
+    user.resetExpiresAt = "";
+    user.updatedAt = new Date().toISOString();
+    upsertUser(user);
+    saveState();
+    syncWrite("passwordReset", { user: publicUser(user) });
+    $("#resetPanel").dataset.open = "";
+    $("#resetPanel").classList.add("hidden");
+    $("#resetCodeInput").value = "";
+    $("#resetPasswordInput").value = "";
+    setAuthMode("login");
+    showToast("密碼已更新，請用新密碼登入。");
   }
 
   function upsertUser(user) {
@@ -260,32 +512,36 @@
     else state.users.push(user);
   }
 
+  function showLoginRequired(role = "student") {
+    showView("entry");
+    setAuthRole(role);
+    setAuthMode(role === "student" ? "register" : "login");
+    const emailInput = $("[name='email']");
+    if (emailInput) emailInput.focus();
+    showToast(role === "student"
+      ? "請先註冊或登入，東東才會開啟聊天並保存完整對話紀錄。"
+      : "請先登入教師帳號。");
+  }
+
   function ensureStudentSession() {
-    if (state.currentUser && state.currentUser.role === "student") return state.currentUser;
-    const user = {
-      id: uid("student"),
-      role: "student",
-      name: "東華同學",
-      email: "",
-      college: "人文社會科學學院",
-      department: "尚未選擇",
-      year: "",
-      advisorEmail: "",
-      consent: false,
-      updatedAt: new Date().toISOString()
-    };
-    setCurrentUser(user);
-    upsertUser(user);
-    saveState();
-    return user;
+    if (isAuthenticatedCurrentUser("student")) return state.currentUser;
+    showLoginRequired("student");
+    return null;
   }
 
   function showView(view) {
+    if (view === "student" && !isAuthenticatedCurrentUser("student")) {
+      showLoginRequired("student");
+      return;
+    }
+    if (view === "teacher" && !isAuthenticatedCurrentUser("teacher")) {
+      showLoginRequired("teacher");
+      return;
+    }
     $("#entryView").classList.toggle("hidden", view !== "entry");
     $("#studentView").classList.toggle("hidden", view !== "student");
     $("#teacherView").classList.toggle("hidden", view !== "teacher");
     if (view === "student") {
-      ensureStudentSession();
       renderStudentProfile();
       ensureChatIntro();
     }
@@ -294,7 +550,8 @@
   }
 
   function renderStudentProfile() {
-    const user = state.currentUser || ensureStudentSession();
+    const user = ensureStudentSession();
+    if (!user) return;
     $("#studentAvatar").textContent = safeText(user.name, "學").slice(0, 1);
     $("#studentName").textContent = safeText(user.name, "東華同學");
     $("#studentMeta").textContent = [user.college, user.department, user.year].filter(Boolean).join(" · ") || "東華大學";
@@ -330,6 +587,7 @@
     const text = input.value.trim();
     if (!text) return;
     const user = ensureStudentSession();
+    if (!user) return;
     addChatMessage("user", text);
     input.value = "";
 
@@ -543,6 +801,7 @@
 
   function handleSaveCheckin() {
     const user = ensureStudentSession();
+    if (!user) return;
     const context = readCheckinContext();
     const latestConversation = state.conversations
       .filter((entry) => entry.studentId === user.id)
@@ -834,23 +1093,28 @@
 
   function bindEvents() {
     bindAuthRoleTabs();
+    bindAuthModeTabs();
+    setAuthMode("register");
     $("#authForm").addEventListener("submit", handleAuthSubmit);
-    $("#continueLocalButton").addEventListener("click", () => {
-      ensureStudentSession();
-      showView("student");
-    });
+    $("#continueLocalButton").addEventListener("click", () => showLoginRequired("student"));
+    $("#forgotPasswordButton").addEventListener("click", requestPasswordReset);
+    $("#resetPasswordButton").addEventListener("click", applyPasswordReset);
     $("#chatForm").addEventListener("submit", handleChatSubmit);
     $("#saveCheckinButton").addEventListener("click", handleSaveCheckin);
-    $("#studentDoorButton").addEventListener("click", () => showView("student"));
+    $("#studentDoorButton").addEventListener("click", () => {
+      if (isAuthenticatedCurrentUser("student")) showView("student");
+      else showLoginRequired("student");
+    });
     $("#teacherDoorButton").addEventListener("click", () => {
-      if (!state.currentUser || state.currentUser.role !== "teacher") setAuthRole("teacher");
-      if (state.currentUser && state.currentUser.role === "teacher") showView("teacher");
-      else showView("entry");
+      if (isAuthenticatedCurrentUser("teacher")) showView("teacher");
+      else showLoginRequired("teacher");
     });
     $("#homeButton").addEventListener("click", () => showView("entry"));
     $("#logoutButton").addEventListener("click", () => {
       setCurrentUser(null);
+      clearAuthSecrets();
       showView("entry");
+      setAuthMode("login");
       showToast("已登出。");
     });
     $("#settingsButton").addEventListener("click", openSettings);
@@ -875,8 +1139,12 @@
     renderLandingNeeds();
     renderStudentSelects();
     bindEvents();
-    if (state.currentUser && state.currentUser.role === "student") showView("student");
-    else if (state.currentUser && state.currentUser.role === "teacher") showView("teacher");
+    if (isAuthenticatedCurrentUser("student")) showView("student");
+    else if (isAuthenticatedCurrentUser("teacher")) showView("teacher");
+    else if (state.currentUser) {
+      setCurrentUser(null);
+      showView("entry");
+    }
     else showView("entry");
     iconRefresh();
   }
