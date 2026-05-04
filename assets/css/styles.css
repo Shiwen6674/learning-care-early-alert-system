@@ -192,38 +192,39 @@ button {
 }
 
 .companion-panel {
-  position: relative;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  min-height: auto;
+  display: grid;
+  grid-template-rows: clamp(240px, 32vh, 320px) auto;
+  gap: 16px;
+}
+
+.campus-photo {
+  margin: 0;
+  min-height: 0;
   overflow: hidden;
-  min-height: 680px;
-  padding: clamp(24px, 4vw, 54px);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  background: var(--surface);
 }
 
-.companion-visual {
-  position: absolute;
-  inset: 0;
-  min-height: 280px;
-}
-
-.companion-visual img {
+.campus-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 28%;
   display: block;
 }
 
-.companion-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgba(255, 255, 255, .18) 0%, rgba(255, 255, 255, .78) 42%, rgba(255, 255, 255, .98) 100%);
-}
-
-.companion-panel > *:not(.companion-visual) {
-  position: relative;
-  z-index: 1;
+.learning-brief {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: clamp(22px, 3vw, 34px);
 }
 
 .panel-eyebrow {
@@ -244,8 +245,8 @@ p {
 
 h1 {
   max-width: 720px;
-  font-size: clamp(2.1rem, 4vw, 4.5rem);
-  line-height: 1.08;
+  font-size: clamp(1.65rem, 3vw, 2.65rem);
+  line-height: 1.18;
   margin-bottom: 16px;
 }
 
@@ -266,6 +267,48 @@ h3 {
   line-height: 1.8;
   font-size: 1.05rem;
   margin-bottom: 18px;
+}
+
+.brief-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.brief-points li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #dce8e3;
+  border-radius: 8px;
+  background: #f5faf8;
+}
+
+.brief-points svg {
+  flex: 0 0 auto;
+  width: 19px;
+  height: 19px;
+  color: var(--teal-dark);
+}
+
+.brief-points strong,
+.brief-points small {
+  display: block;
+}
+
+.brief-points strong {
+  margin-bottom: 3px;
+  color: var(--ink);
+}
+
+.brief-points small {
+  color: var(--muted);
+  line-height: 1.55;
 }
 
 .quick-need-grid {
@@ -830,6 +873,7 @@ meter {
   }
 
   .quick-need-grid,
+  .brief-points,
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -858,11 +902,15 @@ meter {
   }
 
   .companion-panel {
-    min-height: 620px;
-    padding: 22px;
+    grid-template-rows: auto auto;
+  }
+
+  .campus-photo {
+    min-height: 260px;
   }
 
   .quick-need-grid,
+  .brief-points,
   .form-grid,
   .form-grid.compact,
   .kpi-grid,

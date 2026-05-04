@@ -26,7 +26,7 @@
     "預約導師晤談",
     "找助教或同學討論",
     "調整作業與考試策略",
-    "轉介東華學習或諮商資源"
+    "連結東華學習資源或系所支持"
   ];
 
   const urgentWords = ["自傷", "自殺", "不想活", "傷害自己", "傷害別人", "活不下去", "結束生命"];
@@ -204,10 +204,10 @@
     });
     $$("[data-student-only]").forEach((node) => node.classList.toggle("hidden", role !== "student"));
     $$("[data-teacher-only]").forEach((node) => node.classList.toggle("hidden", role !== "teacher"));
-    $("#authTitle").textContent = role === "student" ? "東華學生登入" : "東華教師登入";
+    $("#authTitle").textContent = role === "student" ? "學生註冊 / 登入" : "教師工作台登入";
     $("#authHint").textContent = role === "student"
-      ? "進來後可以直接跟東東說最近卡住的課、作業、考試或生活節奏。"
-      : "教師端會依授權範圍顯示學生摘要、預警層級與追蹤事項。";
+      ? "第一次使用請留下基本資料，東東會用這些資訊理解你的學院、系所與學習脈絡；之後就能直接接續你的學習紀錄。"
+      : "教師端會依授權範圍顯示學生學習摘要、關懷層級與後續追蹤事項。";
     $("#authSubmitText").textContent = role === "student" ? "進入東東陪聊" : "進入教師工作台";
   }
 

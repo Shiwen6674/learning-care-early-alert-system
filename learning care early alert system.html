@@ -34,14 +34,18 @@
     <main>
       <section class="entry-layout view" id="entryView">
         <article class="companion-panel">
-          <div class="companion-visual" aria-hidden="true">
-            <img src="assets/img/learning-companion.png" alt="">
-          </div>
-          <div class="panel-eyebrow">東華大學 Learning Care Early Alert System</div>
-          <p class="lead">同學們您好，我是東東，不管你是趕期中、跨域修課跟不上、通勤打工壓縮讀書時間，或只是覺得不知道怎麼開口，我會陪你聊聊天...</p>
-          <div class="care-note">
-            <i data-lucide="heart-handshake"></i>
-            <span>東東會陪你整理學習問題與求助方向；如果你正處於立即危險或可能傷害自己，請先聯絡 119、110、校安中心或校內諮商資源。</span>
+          <figure class="campus-photo">
+            <img src="assets/img/ndhu-campus-lake.jpg" alt="國立東華大學湖畔校園">
+          </figure>
+          <div class="learning-brief">
+            <div class="panel-eyebrow">東華大學 Learning Care Early Alert System</div>
+            <h1>把學習卡住的地方說出來，東東陪你整理下一步。</h1>
+            <p class="lead">同學你好，我是東東。當你覺得課程進度、作業、考試準備、跨域修課或時間安排有點卡住，可以先用自己的話跟我說。我會先聽懂你的情境，再把重點整理成可行的小步驟；需要時，也會協助生成讓導師或授課老師快速掌握的學習摘要。</p>
+            <ul class="brief-points" aria-label="系統簡要說明">
+              <li><i data-lucide="messages-square"></i><span><strong>先聊近況</strong><small>不用整理好才開口，東東會陪你把話接下去。</small></span></li>
+              <li><i data-lucide="list-checks"></i><span><strong>整理卡點</strong><small>把課業、時間與學習策略拆成可以先做的一小步。</small></span></li>
+              <li><i data-lucide="users-round"></i><span><strong>連結老師</strong><small>讓教師端看見重點，提早給出合適的支持。</small></span></li>
+            </ul>
           </div>
         </article>
 
@@ -53,8 +57,8 @@
 
           <form class="auth-form" id="authForm">
             <div class="form-title">
-              <h2 id="authTitle">東華學生登入</h2>
-              <p id="authHint">進來後可以直接跟東東說最近卡住的課、作業、考試或生活節奏。</p>
+              <h2 id="authTitle">學生註冊 / 登入</h2>
+              <p id="authHint">第一次使用請留下基本資料，東東會用這些資訊理解你的學院、系所與學習脈絡；之後就能直接接續你的學習紀錄。</p>
             </div>
             <div class="form-grid">
               <label>
@@ -103,7 +107,7 @@
             </div>
             <label class="consent-line">
               <input name="consent" type="checkbox" required>
-              <span>我了解 LCEAS 會保存學習輔導必要資料，教師端只呈現追蹤所需摘要。</span>
+              <span>我了解 LCEAS 會保存本次學習紀錄，用於後續陪伴與教師端必要追蹤。</span>
             </label>
             <div class="form-actions">
               <button class="primary-button" type="submit"><i data-lucide="arrow-right"></i><span id="authSubmitText">進入東東陪聊</span></button>
@@ -138,7 +142,7 @@
               <li>授課教師與課程助教</li>
               <li>班級導師與系辦</li>
               <li>教學卓越中心學習資源</li>
-              <li>諮商中心與校安資源</li>
+              <li>同儕討論與學習策略支持</li>
             </ul>
           </div>
         </aside>
