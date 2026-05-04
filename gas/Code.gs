@@ -49,6 +49,8 @@ function chatWithOpenAI_(input) {
   const history = Array.isArray(input.history) ? input.history.slice(-10) : [];
   const profile = [
     context.nickname ? "稱呼：" + context.nickname : "",
+    context.studentId ? "學號：" + context.studentId : "",
+    context.grade ? "年級：" + context.grade : "",
     context.college ? "學院：" + context.college : "",
     context.department ? "系所：" + context.department : ""
   ].filter(Boolean).join("；");
@@ -113,6 +115,8 @@ function summarizeConversation_(input) {
   const messages = Array.isArray(input.messages) ? input.messages : [];
   const profile = [
     context.nickname ? "姓名或稱呼：" + context.nickname : "",
+    context.studentId ? "學號：" + context.studentId : "",
+    context.grade ? "年級：" + context.grade : "",
     context.college ? "學院：" + context.college : "",
     context.department ? "科系：" + context.department : "",
     input.sessionNumber ? "對話次數：第 " + input.sessionNumber + " 次" : ""

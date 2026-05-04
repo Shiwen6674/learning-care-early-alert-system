@@ -135,6 +135,8 @@ button:disabled {
 
 .consent-card {
   width: min(680px, 100%);
+  max-height: min(820px, calc(100vh - 56px));
+  overflow: auto;
   padding: clamp(30px, 5vw, 52px);
   text-align: center;
   background:
@@ -154,6 +156,39 @@ button:disabled {
   margin: 0 auto 12px;
   color: #554b41;
   line-height: 1.95;
+}
+
+.consent-body {
+  max-width: 590px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.consent-body p {
+  max-width: none;
+  margin: 0 0 12px;
+}
+
+.consent-body section {
+  margin-top: 18px;
+}
+
+.consent-body h2 {
+  margin: 0 0 8px;
+  color: #8a5a24;
+  font-size: 1.02rem;
+  line-height: 1.55;
+}
+
+.consent-body ol {
+  margin: 0 0 0 1.5em;
+  padding: 0;
+  color: #554b41;
+  line-height: 1.9;
+}
+
+.consent-body li {
+  margin-bottom: 4px;
 }
 
 .consent-card a {
@@ -567,13 +602,15 @@ textarea:focus {
 
 .report-page {
   min-height: 1122px;
-  padding: 72px 70px;
+  padding: 96px 70px 72px;
   background: #ffffff;
   page-break-after: always;
+  break-after: page;
 }
 
 .report-page:last-child {
   page-break-after: auto;
+  break-after: auto;
 }
 
 .report-cover {
@@ -645,6 +682,7 @@ textarea:focus {
   border: 1px solid #d6e4dd;
   border-radius: 8px;
   break-inside: avoid;
+  page-break-inside: avoid;
 }
 
 .report-turn.user {

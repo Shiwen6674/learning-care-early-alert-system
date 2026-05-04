@@ -28,11 +28,42 @@
     <main class="flow-main">
       <section class="view consent-view" id="consentView" aria-labelledby="usageConsentTitle">
         <form class="consent-card" id="usageConsentForm">
-          <h1 id="usageConsentTitle">使用說明</h1>
-          <p>安安是 LCEAS 中的 AI 學習陪伴，協助整理課業、時間安排、學習策略與求助表達。</p>
-          <p>請用自己的節奏輸入想談的學習狀況，也請避免輸入身分證字號、完整住址、金融資訊等不必要的敏感資料。</p>
-          <p>安安提供學習上的陪伴與引導，不取代校內專業諮詢或正式課業評量。</p>
-          <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用說明</a>
+          <h1 id="usageConsentTitle">使用者知情同意說明</h1>
+          <div class="consent-body">
+            <p>歡迎使用「安安」AI 學習陪伴服務。開始使用前，請先閱讀以下說明。當您勾選同意並開始使用本服務，即表示您已了解本服務的角色、資料使用目的與使用限制，並同意以下內容。</p>
+            <section>
+              <h2>一、安安的服務角色</h2>
+              <p>（一）安安是國立東華大學學習關懷預警系統中的 AI 學習陪伴，主要協助學生進行學習相關的整理與規劃，例如：課業重點整理、作業與報告準備、考試準備、跨域修課思考、時間管理、學習策略建議，以及自我學習狀況的初步梳理等。</p>
+              <p>（二）安安的目的是提供溫和引導與具體建議，協助您更清楚地面對學習問題，並思考可行的下一步行動。</p>
+            </section>
+            <section>
+              <h2>二、資料使用目的</h2>
+              <p>您在本服務中輸入的訊息，會用於產生當次 AI 回覆，協助安安理解您的學習需求、問題脈絡與希望獲得的協助。</p>
+              <p>本服務使用資料的目的包括：</p>
+              <ol>
+                <li>回應您當次提出的學習問題。</li>
+                <li>協助整理您提供的學習資訊與需求。</li>
+                <li>提供與課業安排、學習策略、時間規劃或修課思考有關的建議。</li>
+                <li>維持短期對話脈絡，使回覆較為連貫。</li>
+              </ol>
+            </section>
+            <section>
+              <h2>三、使用提醒</h2>
+              <p>（一）安安提供的是學習陪伴與一般性建議，並非正式課業評量、學籍判定、行政決定或心理諮商診斷的依據。</p>
+              <p>（二）若涉及成績、選課、畢業門檻、學籍、請假、休退學、獎助學金或其他正式行政事項，請以課程教師、系所辦公室、學校相關單位或正式公告為準。</p>
+              <p>（三）若您的情況涉及急迫危機、強烈情緒困擾、自傷或傷人風險，或需要真人即時協助，請立即聯絡導師、系所辦公室、學務處、諮商輔導中心、校安中心或當地緊急求助管道。安安無法取代即時危機處理或專業諮商服務。</p>
+            </section>
+            <section>
+              <h2>四、您的同意</h2>
+              <p>您勾選同意並開始使用本服務，即表示您已了解並同意：</p>
+              <ol>
+                <li>本服務可依據您輸入的訊息產生 AI 回覆。</li>
+                <li>您在本服務中輸入的訊息，將用於當次 AI 回覆與短期對話脈絡。</li>
+                <li>安安提供的是學習陪伴與一般性建議，不取代教師、導師、諮商心理師、校內行政單位或其他專業人員的正式協助。</li>
+                <li>若涉及正式課業、行政、心理諮商或緊急協助事項，您應尋求校內外適當專業資源。</li>
+              </ol>
+            </section>
+          </div>
           <label class="consent-line">
             <input id="usageConsentCheck" type="checkbox" required>
             <span>我已閱讀並了解以上說明</span>
@@ -56,6 +87,24 @@
               <span>安安可以怎麼稱呼你</span>
               <input id="nicknameInput" name="nickname" type="text" autocomplete="name" placeholder="輸入你希望安安使用的稱呼" required>
             </label>
+            <div class="field-grid">
+              <label>
+                <span>學號</span>
+                <input id="studentIdInput" name="studentId" type="text" autocomplete="off" placeholder="輸入學號" required>
+              </label>
+              <label>
+                <span>年級</span>
+                <select id="gradeSelect" name="grade" required>
+                  <option value="一年級">一年級</option>
+                  <option value="二年級">二年級</option>
+                  <option value="三年級">三年級</option>
+                  <option value="四年級">四年級</option>
+                  <option value="五年級以上">五年級以上</option>
+                  <option value="碩士班">碩士班</option>
+                  <option value="博士班">博士班</option>
+                </select>
+              </label>
+            </div>
             <div class="field-grid">
               <label>
                 <span>學院</span>

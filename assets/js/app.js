@@ -13,6 +13,8 @@
     reportAnalysis: "",
     profile: {
       nickname: "",
+      studentId: "",
+      grade: "",
       college: "",
       department: ""
     }
@@ -59,11 +61,13 @@
 
   function loadSettings() {
     try {
-      state.settings = Object.assign({}, DEFAULT_SETTINGS, JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}"));
+      const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+      state.settings = Object.assign({}, DEFAULT_SETTINGS, stored);
     } catch (err) {
       state.settings = Object.assign({}, DEFAULT_SETTINGS);
     }
-    if (!state.settings.gasEndpoint) state.settings.gasEndpoint = GAS_ENDPOINT;
+    state.settings.gasEndpoint = GAS_ENDPOINT;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
   }
 
   function showToast(message) {
@@ -89,10 +93,16 @@
     iconRefresh();
   }
 
+  function normalizedStudentId(value = state.profile.studentId) {
+    return safeText(value).toUpperCase().replace(/\s+/g, "");
+  }
+
   function nextSessionNumber() {
-    const current = Number.parseInt(localStorage.getItem(SESSION_COUNT_KEY) || "0", 10);
+    const studentId = normalizedStudentId() || "UNKNOWN";
+    const key = `${SESSION_COUNT_KEY}.${studentId}`;
+    const current = Number.parseInt(localStorage.getItem(key) || "0", 10);
     const next = Number.isFinite(current) ? current + 1 : 1;
-    localStorage.setItem(SESSION_COUNT_KEY, String(next));
+    localStorage.setItem(key, String(next));
     return next;
   }
 
@@ -153,6 +163,8 @@
     event.preventDefault();
     state.profile = {
       nickname: safeText($("#nicknameInput").value, "同學"),
+      studentId: normalizedStudentId($("#studentIdInput").value),
+      grade: safeText($("#gradeSelect").value),
       college: safeText($("#collegeSelect").value),
       department: safeText($("#departmentSelect").value)
     };
@@ -369,6 +381,8 @@
       title: reportTitle(),
       date: reportDate(),
       name: state.profile.nickname || "未填寫",
+      studentId: state.profile.studentId || "未填寫",
+      grade: state.profile.grade || "未填寫",
       college: state.profile.college || "未填寫",
       department: state.profile.department || "未填寫"
     };
@@ -447,6 +461,8 @@
       "",
       `日期：${meta.date}`,
       `姓名：${meta.name}`,
+      `學號：${meta.studentId}`,
+      `年級：${meta.grade}`,
       `學院：${meta.college}`,
       `科系：${meta.department}`,
       "",
@@ -456,7 +472,7 @@
       "詳細對話過程",
       transcriptText()
     ].join("\n");
-    triggerTextDownload(content, `LCEAS-${fileSafeName(meta.name)}-${state.sessionNumber || 1}.txt`);
+    triggerTextDownload(content, `LCEAS-${fileSafeName(meta.name)}-${fileSafeName(meta.studentId)}-${state.sessionNumber || 1}.txt`);
   }
 
   function paragraphHtml(text) {
@@ -487,6 +503,8 @@
           <dl>
             <div><dt>日期</dt><dd>${escapeHtml(meta.date)}</dd></div>
             <div><dt>姓名</dt><dd>${escapeHtml(meta.name)}</dd></div>
+            <div><dt>學號</dt><dd>${escapeHtml(meta.studentId)}</dd></div>
+            <div><dt>年級</dt><dd>${escapeHtml(meta.grade)}</dd></div>
             <div><dt>學院</dt><dd>${escapeHtml(meta.college)}</dd></div>
             <div><dt>科系</dt><dd>${escapeHtml(meta.department)}</dd></div>
           </dl>
@@ -536,12 +554,12 @@
       }
       await window.html2pdf()
         .set({
-          margin: 0,
-          filename: `LCEAS-${fileSafeName(meta.name)}-${state.sessionNumber || 1}.pdf`,
+          margin: [48, 0, 48, 0],
+          filename: `LCEAS-${fileSafeName(meta.name)}-${fileSafeName(meta.studentId)}-${state.sessionNumber || 1}.pdf`,
           image: { type: "jpeg", quality: 0.98 },
           html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
           jsPDF: { unit: "pt", format: "a4", orientation: "portrait" },
-          pagebreak: { mode: ["css", "legacy"] }
+          pagebreak: { mode: ["css", "legacy"], avoid: [".report-turn"] }
         })
         .from(report)
         .save();
