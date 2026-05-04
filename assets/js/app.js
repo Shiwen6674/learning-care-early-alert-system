@@ -3,11 +3,16 @@
 
   const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbw9A4n_9XskiPQidcaZLSbkweI1BXG_QMywC5BXnIUv_YIOVEyhu5VlYPid0yuxJtuZ/exec";
   const SETTINGS_KEY = "ndhu.learning.anan.settings.v2";
-  const CONSENT_KEY = "ndhu.learning.anan.usageConsent.v3";
+  const CONSENT_KEY = "ndhu.learning.anan.usageConsent.v4";
   const DEFAULT_SETTINGS = { gasEndpoint: GAS_ENDPOINT };
   const state = {
     settings: Object.assign({}, DEFAULT_SETTINGS),
-    messages: []
+    messages: [],
+    profile: {
+      nickname: "",
+      college: "",
+      department: ""
+    }
   };
 
   let speechRecognition = null;
@@ -58,16 +63,88 @@
     if (!state.settings.gasEndpoint) state.settings.gasEndpoint = GAS_ENDPOINT;
   }
 
-  function saveSettings() {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
-  }
-
   function showToast(message) {
+    const region = $("#toastRegion");
+    if (!region) return;
     const toast = document.createElement("div");
     toast.className = "toast";
     toast.textContent = message;
-    $("#toastRegion").appendChild(toast);
+    region.appendChild(toast);
     window.setTimeout(() => toast.remove(), 3600);
+  }
+
+  function showView(viewId) {
+    document.querySelectorAll(".view").forEach((view) => {
+      view.classList.toggle("hidden", view.id !== viewId);
+    });
+    if (viewId === "entryView") {
+      window.setTimeout(() => $("#nicknameInput").focus(), 80);
+    }
+    if (viewId === "chatView") {
+      window.setTimeout(() => $("#chatInput").focus(), 80);
+    }
+    iconRefresh();
+  }
+
+  function setupUsageConsent() {
+    const check = $("#usageConsentCheck");
+    const button = $("#usageConsentButton");
+    const form = $("#usageConsentForm");
+    if (!check || !button || !form) return;
+
+    check.addEventListener("change", () => {
+      button.disabled = !check.checked;
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!check.checked) return;
+      localStorage.setItem(CONSENT_KEY, "accepted");
+      showView("entryView");
+    });
+
+    if (localStorage.getItem(CONSENT_KEY) === "accepted") {
+      showView("entryView");
+    } else {
+      showView("consentView");
+    }
+  }
+
+  function populateProfileOptions() {
+    const collegeSelect = $("#collegeSelect");
+    const departmentSelect = $("#departmentSelect");
+    if (!collegeSelect || !departmentSelect) return;
+
+    const colleges = (window.NDHULearningData && window.NDHULearningData.colleges) || [];
+    collegeSelect.innerHTML = colleges
+      .map((college) => `<option value="${escapeHtml(college.name)}">${escapeHtml(college.name)}</option>`)
+      .join("");
+
+    function updateDepartments() {
+      const selected = colleges.find((college) => college.name === collegeSelect.value) || colleges[0];
+      const departments = selected ? selected.departments : [];
+      departmentSelect.innerHTML = departments
+        .map((department) => `<option value="${escapeHtml(department)}">${escapeHtml(department)}</option>`)
+        .join("");
+    }
+
+    const educationCollege = colleges.find((college) => college.name === "花師教育學院");
+    if (educationCollege) collegeSelect.value = educationCollege.name;
+    updateDepartments();
+    collegeSelect.addEventListener("change", updateDepartments);
+  }
+
+  function handleProfileSubmit(event) {
+    event.preventDefault();
+    state.profile = {
+      nickname: safeText($("#nicknameInput").value, "同學"),
+      college: safeText($("#collegeSelect").value),
+      department: safeText($("#departmentSelect").value)
+    };
+    state.messages = [];
+    $("#chatLog").innerHTML = "";
+    $("#chatInput").placeholder = `${state.profile.nickname}，輸入你想和安安說的話...`;
+    showView("chatView");
   }
 
   function addMessage(role, text, timestamp = new Date().toISOString(), meta = "") {
@@ -80,14 +157,13 @@
     };
     state.messages.push(message);
     renderMessage(message);
-    updateDownloadState();
     return message;
   }
 
   function renderMessage(message) {
     const node = document.createElement("article");
     node.className = `message ${message.role}`;
-    const speaker = message.role === "user" ? "你" : "安安";
+    const speaker = message.role === "user" ? (state.profile.nickname || "你") : "安安";
     const label = [formatMessageTime(message.timestamp), message.meta].filter(Boolean).join(" · ");
     node.innerHTML = `
       <strong>${escapeHtml(speaker)}</strong>
@@ -136,7 +212,6 @@
     };
     state.messages.push(replyMessage);
     updateMessageNode(pending, replyMessage.text, replyMessage.timestamp, replyMessage.meta);
-    updateDownloadState();
   }
 
   function renderPendingMessage() {
@@ -166,6 +241,7 @@
       }));
     const payload = {
       message: text,
+      context: state.profile,
       history,
       clientTime: new Date().toISOString()
     };
@@ -211,84 +287,6 @@
       script.src = `${endpoint}${separator}${query.toString()}`;
       document.head.appendChild(script);
     });
-  }
-
-  function updateDownloadState() {
-    const hasConversation = state.messages.some((message) => message.role === "user");
-    const button = $("#downloadNavButton");
-    if (button) button.disabled = !hasConversation;
-  }
-
-  function downloadConversation() {
-    const meaningful = state.messages.filter((message) => message.role === "user" || message.role === "agent");
-    if (!meaningful.some((message) => message.role === "user")) {
-      showToast("目前還沒有可下載的內容。");
-      return;
-    }
-    const lines = [
-      "LCEAS 國立東華大學學習關懷預警系統",
-      `下載時間：${new Date().toLocaleString("zh-TW")}`,
-      ""
-    ].concat(meaningful.map((message) => {
-      const speaker = message.role === "user" ? "你" : "安安";
-      return `[${new Date(message.timestamp).toLocaleString("zh-TW")}] ${speaker}\n${message.text}`;
-    }));
-    const blob = new Blob([lines.join("\n\n")], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `anan-chat-${new Date().toISOString().slice(0, 10)}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function clearConversation() {
-    state.messages = [];
-    $("#chatLog").innerHTML = "";
-    updateDownloadState();
-  }
-
-  function openSettings() {
-    $("#gasEndpointInput").value = state.settings.gasEndpoint || GAS_ENDPOINT;
-    $("#settingsDialog").showModal();
-  }
-
-  function saveSettingsFromDialog(event) {
-    event.preventDefault();
-    state.settings.gasEndpoint = safeText($("#gasEndpointInput").value, GAS_ENDPOINT);
-    saveSettings();
-    $("#settingsDialog").close();
-    showToast("已更新連線設定。");
-  }
-
-  function setupUsageConsent() {
-    const dialog = $("#usageConsentDialog");
-    const check = $("#usageConsentCheck");
-    const button = $("#usageConsentButton");
-    const form = $("#usageConsentForm");
-    const opener = $("#openConsentButton");
-    if (!dialog || !check || !button || !form) return;
-
-    function openDialog(force = false) {
-      if (!force && localStorage.getItem(CONSENT_KEY) === "accepted") return;
-      check.checked = false;
-      button.disabled = true;
-      if (typeof dialog.showModal === "function") dialog.showModal();
-      else dialog.classList.remove("hidden");
-    }
-
-    check.addEventListener("change", () => {
-      button.disabled = !check.checked;
-    });
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      if (!check.checked) return;
-      localStorage.setItem(CONSENT_KEY, "accepted");
-      if (dialog.open) dialog.close();
-      $("#chatInput").focus();
-    });
-    if (opener) opener.addEventListener("click", () => openDialog(true));
-    openDialog(false);
   }
 
   function setupVoiceInput() {
@@ -374,20 +372,18 @@
   }
 
   function bindEvents() {
-    $(".brand").addEventListener("click", (event) => event.preventDefault());
+    const brand = $(".brand");
+    if (brand) brand.addEventListener("click", (event) => event.preventDefault());
+    $("#profileForm").addEventListener("submit", handleProfileSubmit);
     $("#chatForm").addEventListener("submit", handleChatSubmit);
-    $("#downloadNavButton").addEventListener("click", downloadConversation);
-    $("#clearChatButton").addEventListener("click", clearConversation);
-    $("#settingsButton").addEventListener("click", openSettings);
-    $("#saveSettingsButton").addEventListener("click", saveSettingsFromDialog);
   }
 
   function init() {
     loadSettings();
+    populateProfileOptions();
     bindEvents();
     setupUsageConsent();
     setupVoiceInput();
-    updateDownloadState();
     iconRefresh();
   }
 

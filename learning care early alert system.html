@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="assets/css/styles.css">
   <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script defer src="assets/js/ndhu-data.js"></script>
   <script defer src="assets/js/app.js"></script>
 </head>
 <body>
@@ -21,67 +22,75 @@
           <small>National Dong Hwa University Learning Care Early Alert System</small>
         </span>
       </a>
-      <nav class="top-actions" aria-label="主要功能">
-        <button class="soft-button" id="openConsentButton" type="button"><i data-lucide="book-open"></i>說明</button>
-        <button class="soft-button" id="downloadNavButton" type="button"><i data-lucide="download"></i>下載</button>
-        <button class="soft-button" id="clearChatButton" type="button"><i data-lucide="eraser"></i>清除</button>
-        <button class="icon-button" id="settingsButton" type="button" title="連線設定" aria-label="連線設定"><i data-lucide="settings"></i></button>
-      </nav>
     </header>
 
-    <main class="chat-main">
-      <section class="chat-shell" aria-label="安安對話">
-        <aside class="anan-card" aria-label="安安">
-          <img src="assets/img/anan-avatar.svg" alt="安安">
-        </aside>
+    <main class="flow-main">
+      <section class="view consent-view" id="consentView" aria-labelledby="usageConsentTitle">
+        <form class="consent-card" id="usageConsentForm">
+          <h1 id="usageConsentTitle">使用說明</h1>
+          <p>安安是 LCEAS 中的 AI 學習陪伴，協助整理課業、時間安排、學習策略與求助表達。</p>
+          <p>請用自己的節奏輸入想談的學習狀況，也請避免輸入身分證字號、完整住址、金融資訊等不必要的敏感資料。</p>
+          <p>安安提供學習上的陪伴與引導，不取代校內專業諮詢或正式課業評量。</p>
+          <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用說明</a>
+          <label class="consent-line">
+            <input id="usageConsentCheck" type="checkbox" required>
+            <span>我已閱讀並了解以上說明</span>
+          </label>
+          <button class="primary-button consent-submit" id="usageConsentButton" type="submit" disabled>同意並開始使用</button>
+        </form>
+      </section>
 
-        <section class="chat-card">
-          <div class="chat-log" id="chatLog" aria-live="polite"></div>
-          <form class="chat-composer" id="chatForm">
-            <label class="sr-only" for="chatInput">輸入訊息</label>
-            <div class="composer-field">
-              <textarea id="chatInput" rows="3" placeholder="輸入你想和安安說的話..."></textarea>
-              <button class="icon-button voice-button" id="voiceInputButton" type="button" title="語音輸入" aria-label="語音輸入"><i data-lucide="mic"></i></button>
+      <section class="view entry-view hidden" id="entryView" aria-labelledby="entryTitle">
+        <div class="entry-grid">
+          <section class="campus-panel" aria-label="國立東華大學">
+            <img src="assets/img/ndhu-campus-lake.jpg" alt="國立東華大學校園湖畔">
+            <div class="intro-copy">
+              <h1 id="entryTitle">國立東華大學學習關懷預警系統</h1>
+              <p>安安是國立東華大學學習關懷預警系統中的 AI 學習陪伴。你可以把課程進度、作業、考試準備、跨域修課或時間安排的卡點，用自己的語氣說出來；安安會先聽懂情境，再陪你把下一步整理得更小、更清楚。</p>
             </div>
-            <button class="primary-button send-button" type="submit"><i data-lucide="send"></i>送出</button>
+          </section>
+
+          <form class="profile-panel" id="profileForm">
+            <label>
+              <span>安安可以怎麼稱呼你</span>
+              <input id="nicknameInput" name="nickname" type="text" autocomplete="name" placeholder="例如：小文" required>
+            </label>
+            <div class="field-grid">
+              <label>
+                <span>學院</span>
+                <select id="collegeSelect" name="college" required></select>
+              </label>
+              <label>
+                <span>系所</span>
+                <select id="departmentSelect" name="department" required></select>
+              </label>
+            </div>
+            <button class="primary-button profile-submit" type="submit"><i data-lucide="sparkles"></i>開始和安安聊聊</button>
           </form>
-        </section>
+        </div>
+      </section>
+
+      <section class="view chat-view hidden" id="chatView" aria-label="安安對話">
+        <div class="chat-shell">
+          <aside class="anan-card" aria-label="安安">
+            <img src="assets/img/anan-avatar.svg" alt="安安">
+          </aside>
+
+          <section class="chat-card">
+            <div class="chat-log" id="chatLog" aria-live="polite"></div>
+            <form class="chat-composer" id="chatForm">
+              <label class="sr-only" for="chatInput">輸入訊息</label>
+              <div class="composer-field">
+                <textarea id="chatInput" rows="3" placeholder="輸入你想和安安說的話..."></textarea>
+                <button class="icon-button voice-button" id="voiceInputButton" type="button" title="語音輸入" aria-label="語音輸入"><i data-lucide="mic"></i></button>
+              </div>
+              <button class="primary-button send-button" type="submit"><i data-lucide="send"></i>送出</button>
+            </form>
+          </section>
+        </div>
       </section>
     </main>
   </div>
-
-  <dialog class="consent-dialog" id="usageConsentDialog" aria-labelledby="usageConsentTitle">
-    <form method="dialog" class="consent-card" id="usageConsentForm">
-      <h2 id="usageConsentTitle">使用說明</h2>
-      <p>安安是 LCEAS 中的 AI 學習陪伴，協助整理課業、時間安排、學習策略與求助表達。</p>
-      <p>請用自己的節奏輸入想談的學習狀況，也請避免輸入身分證字號、完整住址、金融資訊等不必要的敏感資料。</p>
-      <p>安安提供學習上的陪伴與引導，不取代校內專業諮詢或正式課業評量。</p>
-      <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用說明</a>
-      <label class="consent-line">
-        <input id="usageConsentCheck" type="checkbox" required>
-        <span>我已閱讀並了解以上說明</span>
-      </label>
-      <button class="primary-button consent-submit" id="usageConsentButton" type="submit" disabled>同意並開始使用</button>
-    </form>
-  </dialog>
-
-  <dialog id="settingsDialog" class="settings-dialog">
-    <form method="dialog">
-      <div class="dialog-header">
-        <h2>連線設定</h2>
-        <button class="icon-button" value="cancel" aria-label="關閉"><i data-lucide="x"></i></button>
-      </div>
-      <label>
-        <span>Google Apps Script Web App URL</span>
-        <input id="gasEndpointInput" type="url">
-      </label>
-      <p class="dialog-note">OpenAI API key 請放在 Apps Script 的 Script Properties：<code>OPENAI_API_KEY</code>，也支援 <code>API_KEY</code>。</p>
-      <div class="form-actions">
-        <button class="secondary-button" value="cancel">取消</button>
-        <button class="primary-button" id="saveSettingsButton" value="default"><i data-lucide="check"></i>儲存</button>
-      </div>
-    </form>
-  </dialog>
 
   <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 </body>
