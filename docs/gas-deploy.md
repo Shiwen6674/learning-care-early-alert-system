@@ -1,55 +1,34 @@
-# Google Sheet 與 GAS 部署
+# GAS 與 OpenAI API 部署
 
-## 1. 建立資料表
+這一版的 LCEAS 採用「前台不保存對話、GAS 只做代理」的設計。GAS 不建立教師後台、不寫入 Google Sheet，只負責安全地呼叫 OpenAI API 產生安安的回覆。
 
-本專案已建立 `data/ndhu-learning-warning-schema.xlsx`，可匯入 Google Drive 並轉成原生 Google Sheets。匯入後保留以下工作表：
+## 1. 建立或開啟 Apps Script
 
-- `Settings`
-- `CollegesDepartments`
-- `Students`
-- `Teachers`
-- `LearningCheckins`
-- `Conversations`
-- `RiskSignals`
-- `InterventionPlans`
-- `TeacherNotes`
-- `Referrals`
-- `AnalyticsDashboard`
-- `AuditLog`
+1. 開啟 Apps Script 專案。
+2. 將 `gas/Code.gs` 貼到 Apps Script。
+3. 在 Apps Script 左側選擇「專案設定」。
+4. 在 Script Properties 設定：
+   - `OPENAI_API_KEY`：你的 OpenAI API key。
+   - `OPENAI_MODEL`：可省略，預設使用 `gpt-5.4-mini`。
 
-本次已透過 Google Drive API 建立一份原生 Google Sheets：
+API key 只能放在 Script Properties，不要放進 `assets/js/app.js`、HTML、README 或 GitHub repository。
 
-`https://docs.google.com/spreadsheets/d/1MCCPpfNke0UimmqHsqhO3Qx23lnT5qVE4jo2hh7PDnw/edit?usp=drivesdk`
-
-## 2. 建立 Apps Script
-
-1. 開啟匯入後的 Google Sheet。
-2. 選擇「擴充功能」→「Apps Script」。
-3. 將 `gas/Code.gs` 貼到 Apps Script。
-4. 把 `SPREADSHEET_ID` 改成該試算表網址中的 id。
-5. 在 Script Properties 設定：
-   - `ADMIN_SHARED_SECRET`：教師端查詢 token。
-   - `OPENAI_API_KEY`：若要讓東東使用 LLM 回覆才需要。
-   - `OPENAI_MODEL`：可省略，預設使用 `gpt-5.2`。
-
-## 3. 部署 Web App
+## 2. 部署 Web App
 
 1. 選擇「部署」→「新增部署作業」。
 2. 類型選「網路應用程式」。
 3. 執行身分選「我」。
-4. 存取權依校內政策設定；若 GitHub Pages 需跨網域寫入，通常需允許可存取此 Web App 的使用者提交。
+4. 存取權依校內政策設定。
 5. 複製 Web App URL。
 
-本次也已建立 Apps Script 專案並推送 `gas/Code.gs`：
+## 3. 串接前台
 
-`https://script.google.com/d/1pD06aBJGJl_6NIc1dWvlXduY21nxrIQbGqaqEuHpgp6ZOGQHypIG_8dS/edit`
+在網頁右上角按「連線設定」，貼上 Web App URL。學生送出訊息後，前台會呼叫 GAS 的 `llmChat` 動作取得安安回覆。
 
-第一次正式啟用前，請在 Apps Script 編輯器中執行 `manualSetup` 並授權試算表存取；完成授權後再部署或更新 Web App。
+## 4. 安安的 GAS 指令
 
-## 4. 串接前台
+GAS 中已設定安安的 system prompt：安安是國立東華大學 LCEAS 的溫和友善學習陪伴導師型 AI，協助學生整理學習困難與下一步；不保存對話、不建立教師後台、不取代專業諮商。
 
-將 Web App URL 放入 `assets/js/app.js` 的 `gasEndpoint`，或讓管理者在網頁的「連線設定」中貼上 URL。學生送出紀錄後，系統會寫入 Google Sheet；教師端查詢時會要求教師 token。
+## 5. 若尚未設定 API Key
 
-## 5. AI 分析
-
-若設定 `OPENAI_API_KEY`，前台會透過 GAS 的 `llmChat` 端點取得東東的 LLM 回覆，API Key 不會出現在 GitHub Pages 前端。若未設定，系統會使用內建規則式回覆與分析，前台仍可運作。
+若未設定 `OPENAI_API_KEY` 或前台未填入 Web App URL，網頁仍會使用本機備援回覆，讓學生可以先和安安整理學習卡點。

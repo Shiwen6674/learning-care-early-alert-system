@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>LCEAS 國立東華大學學習關懷預警系統</title>
-  <meta name="description" content="國立東華大學 Learning Care Early Alert System，提供學生學習陪伴、教師預警輔導與追蹤管理。">
+  <meta name="description" content="國立東華大學 Learning Care Early Alert System，提供學生與安安進行安心、溫和的 AI 學習陪伴對話。">
   <link rel="icon" href="favicon.ico">
   <link rel="preconnect" href="https://unpkg.com">
   <link rel="stylesheet" href="assets/css/styles.css">
@@ -15,7 +15,7 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="返回系統首頁">
+      <a class="brand" href="#" aria-label="返回首頁">
         <span class="brand-mark"><img src="assets/img/ndhu-emblem.png" alt="國立東華大學校徽"></span>
         <span>
           <strong>LCEAS 國立東華大學學習關懷預警系統</strong>
@@ -23,203 +23,86 @@
         </span>
       </a>
       <nav class="top-actions" aria-label="主要功能">
-        <button class="icon-button" id="homeButton" type="button" title="首頁" aria-label="首頁"><i data-lucide="layout-dashboard"></i></button>
-        <button class="ghost-button" id="studentDoorButton" type="button"><i data-lucide="message-circle-heart"></i>找東東聊聊</button>
-        <button class="ghost-button" id="teacherDoorButton" type="button"><i data-lucide="clipboard-list"></i>教師入口</button>
+        <button class="soft-button" id="openConsentButton" type="button"><i data-lucide="leaf"></i>使用說明</button>
+        <button class="soft-button" id="startChatNavButton" type="button"><i data-lucide="message-circle-heart"></i>開始對話</button>
+        <button class="soft-button" id="downloadNavButton" type="button"><i data-lucide="download"></i>下載對話</button>
         <button class="icon-button" id="settingsButton" type="button" title="連線設定" aria-label="連線設定"><i data-lucide="settings"></i></button>
-        <button class="ghost-button hidden" id="logoutButton" type="button"><i data-lucide="log-out"></i>登出</button>
       </nav>
     </header>
 
     <main>
-      <section class="entry-layout view" id="entryView">
-        <article class="companion-panel">
+      <section class="home-view view" id="homeView">
+        <article class="welcome-panel">
           <figure class="campus-photo">
             <img src="assets/img/ndhu-campus-lake.jpg" alt="國立東華大學湖畔校園">
           </figure>
-          <div class="learning-brief">
-            <div class="panel-eyebrow">國立東華大學 Learning Care Early Alert System</div>
-            <p class="lead">這裡是國立東華大學學習關懷預警系統。東東會依你的學院、系所與課程情境，協助你整理學習近況、釐清卡點與下一步行動；需要時，也會協助生成讓教師快速掌握的學習摘要。</p>
+          <div class="welcome-copy">
+            <span class="panel-eyebrow">東華大學 Learning Care Early Alert System</span>
+            <h1>和安安談談最近卡住的學習片刻。</h1>
+            <p>安安是國立東華大學學習關懷預警系統中的 AI 學習陪伴。你可以把課程進度、作業、考試準備、跨域修課或時間安排的卡點，用自己的語氣說出來；安安會先聽懂情境，再陪你把下一步整理得更小、更清楚。</p>
           </div>
         </article>
 
-        <aside class="auth-card" aria-label="註冊與登入">
-          <div class="segmented" role="tablist" aria-label="使用者角色">
-            <button class="active" type="button" data-auth-role="student" role="tab" aria-selected="true">學生</button>
-            <button type="button" data-auth-role="teacher" role="tab" aria-selected="false">教師</button>
+        <aside class="start-panel" aria-label="開始和安安對話">
+          <div>
+            <span class="panel-eyebrow">安心開始</span>
+            <h2>不用整理好才開口</h2>
+            <p>這段對話不會寫入教師後台，也不會保存到資料庫。若你想留下內容，可以自行下載對話紀錄，帶去和諮商師或你信任的人討論。</p>
           </div>
-
-          <form class="auth-form" id="authForm">
-            <div class="auth-switch" aria-live="polite">
-              <span id="authSwitchText">尚未註冊？</span>
-              <button class="link-button" id="authSwitchButton" type="button">建立帳號</button>
-            </div>
-            <div class="form-title">
-              <h2 id="authTitle">學生登入</h2>
-              <p id="authHint">請先登入，東東會接續你的學習脈絡，陪你把最近的卡點整理清楚。</p>
-            </div>
-            <div class="form-grid">
-              <label data-register-only>
-                <span>姓名</span>
-                <input name="name" autocomplete="name" required>
-              </label>
+          <div class="context-form">
+            <label>
+              <span>安安可以怎麼稱呼你</span>
+              <input id="nicknameInput" autocomplete="off" placeholder="例如：小文、東華同學">
+            </label>
+            <div class="two-fields">
               <label>
-                <span>信箱</span>
-                <input name="email" type="email" autocomplete="email" required>
-              </label>
-              <label>
-                <span>密碼</span>
-                <div class="password-field">
-                  <input name="password" type="password" autocomplete="current-password" minlength="8" required>
-                  <button class="password-toggle" type="button" data-password-toggle aria-label="顯示密碼" title="顯示密碼"><i data-lucide="eye"></i></button>
-                </div>
-              </label>
-              <label data-register-only>
-                <span>確認密碼</span>
-                <div class="password-field">
-                  <input name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required>
-                  <button class="password-toggle" type="button" data-password-toggle aria-label="顯示確認密碼" title="顯示確認密碼"><i data-lucide="eye"></i></button>
-                </div>
-              </label>
-              <label data-student-only>
-                <span>學號</span>
-                <input name="studentId" autocomplete="off">
-              </label>
-              <label data-teacher-only class="hidden">
-                <span>教師代碼或員編</span>
-                <input name="teacherId" autocomplete="off">
-              </label>
-              <label data-register-only>
                 <span>學院</span>
-                <select name="college" id="collegeSelect" required></select>
+                <select id="contextCollege"></select>
               </label>
-              <label data-register-only>
+              <label>
                 <span>系所</span>
-                <select name="department" id="departmentSelect" required></select>
-              </label>
-              <label data-student-only>
-                <span>年級</span>
-                <select name="year">
-                  <option value="一年級">一年級</option>
-                  <option value="二年級">二年級</option>
-                  <option value="三年級">三年級</option>
-                  <option value="四年級">四年級</option>
-                  <option value="延畢或其他">延畢或其他</option>
-                  <option value="研究所">研究所</option>
-                </select>
-              </label>
-              <label data-teacher-only class="hidden">
-                <span>教師查詢 token</span>
-                <div class="password-field">
-                  <input name="teacherToken" type="password" autocomplete="current-password">
-                  <button class="password-toggle" type="button" data-password-toggle aria-label="顯示教師查詢 token" title="顯示教師查詢 token"><i data-lucide="eye"></i></button>
-                </div>
+                <select id="contextDepartment"></select>
               </label>
             </div>
-            <div class="auth-links hidden" id="loginAssist">
-              <button class="link-button" id="forgotPasswordButton" type="button">忘記密碼？寄送修改認證</button>
-            </div>
-            <div class="reset-panel hidden" id="resetPanel" aria-live="polite">
-              <h3>修改密碼認證</h3>
-              <p id="resetHint">請先輸入信箱，再按「寄送修改認證」。</p>
-              <div class="form-grid compact">
-                <label>
-                  <span>認證碼</span>
-                  <input id="resetCodeInput" autocomplete="one-time-code" inputmode="numeric">
-                </label>
-                <label>
-                  <span>新密碼</span>
-                  <div class="password-field">
-                    <input id="resetPasswordInput" type="password" autocomplete="new-password" minlength="8">
-                    <button class="password-toggle" type="button" data-password-toggle aria-label="顯示新密碼" title="顯示新密碼"><i data-lucide="eye"></i></button>
-                  </div>
-                </label>
-              </div>
-              <button class="secondary-button" id="resetPasswordButton" type="button"><i data-lucide="key-round"></i>更新密碼</button>
-            </div>
-            <div class="form-actions">
-              <button class="primary-button" type="submit"><i data-lucide="arrow-right"></i><span id="authSubmitText">登入</span></button>
-            </div>
-          </form>
+            <label>
+              <span>現在最想先整理的事</span>
+              <textarea id="firstThoughtInput" rows="3" placeholder="例如：我最近統計學作業一直拖，想問老師但不知道怎麼開口。"></textarea>
+            </label>
+          </div>
+          <button class="primary-button wide-button" id="startChatButton" type="button"><i data-lucide="sparkles"></i>開始和安安聊聊</button>
         </aside>
       </section>
 
-      <section class="student-layout view hidden" id="studentView" aria-label="學生學習入口">
-        <article class="student-main">
-          <div class="section-heading student-chat-heading">
-            <div class="profile-card compact-profile">
-              <div class="avatar" id="studentAvatar">學</div>
-              <div>
-                <strong id="studentName">學生</strong>
-                <span id="studentMeta">東華大學</span>
-              </div>
+      <section class="chat-view view hidden" id="chatView" aria-label="安安學習陪伴對話">
+        <div class="chat-heading">
+          <div class="anan-profile">
+            <div class="anan-avatar"><img src="assets/img/ndhu-emblem.png" alt=""></div>
+            <div>
+              <span class="panel-eyebrow">安安陪聊窗口</span>
+              <h2>安安在這裡，陪你把學習問題慢慢說清楚。</h2>
             </div>
-            <div class="student-chat-title">
-              <span class="panel-eyebrow">東東陪聊窗口</span>
-              <h2>和東東聊聊</h2>
-            </div>
-            <button class="secondary-button" id="saveCheckinButton" type="button"><i data-lucide="save"></i>保存學習摘要</button>
           </div>
-
-          <div class="chat-and-form chat-only">
-            <section class="chat-card" aria-label="東東學習陪伴對話">
-              <div class="chat-log" id="chatLog" aria-live="polite"></div>
-              <form class="chat-composer" id="chatForm">
-                <label class="sr-only" for="chatInput">跟東東說你的學習近況</label>
-                <div class="composer-field">
-                  <textarea id="chatInput" rows="3" placeholder="可以很口語：東東，我最近某門課快跟不上，作業一直拖，想問老師但不知道怎麼講。"></textarea>
-                  <button class="icon-button voice-button" id="voiceInputButton" type="button" title="語音輸入" aria-label="語音輸入"><i data-lucide="mic"></i></button>
-                </div>
-                <button class="primary-button" type="submit"><i data-lucide="send"></i>送出</button>
-              </form>
-            </section>
-          </div>
-        </article>
-      </section>
-
-      <section class="teacher-layout view hidden" id="teacherView" aria-label="教師預警工作台">
-        <div class="teacher-header">
-          <div>
-            <span class="panel-eyebrow">LCEAS 教師預警工作台</span>
-            <h2 id="teacherGreeting">掌握東華學生需要被看見的學習訊號</h2>
-          </div>
-          <div class="teacher-actions">
-            <button class="secondary-button" id="refreshTeacherButton" type="button"><i data-lucide="refresh-cw"></i>更新資料</button>
-            <button class="primary-button" id="exportCsvButton" type="button"><i data-lucide="download"></i>匯出摘要</button>
+          <div class="chat-actions">
+            <button class="secondary-button" id="downloadChatButton" type="button"><i data-lucide="download"></i>下載對話紀錄</button>
+            <button class="secondary-button" id="clearChatButton" type="button"><i data-lucide="eraser"></i>清除畫面</button>
           </div>
         </div>
 
-        <div class="kpi-grid" id="teacherKpis"></div>
-
-        <div class="teacher-workspace">
-          <section class="student-table-card">
-            <div class="table-toolbar">
-              <label>
-                <span>搜尋學生</span>
-                <input id="studentSearch" placeholder="姓名、學號、課程或困難類型">
-              </label>
-              <label>
-                <span>關懷層級</span>
-                <select id="riskFilter">
-                  <option value="all">全部</option>
-                  <option value="立即轉介">立即轉介</option>
-                  <option value="優先關懷">優先關懷</option>
-                  <option value="觀察">觀察</option>
-                  <option value="穩定">穩定</option>
-                </select>
-              </label>
+        <section class="chat-card">
+          <div class="privacy-ribbon">
+            <i data-lucide="shield-check"></i>
+            <span>對話只暫存在目前畫面，用來讓安安接續理解；重新整理或清除後就不會留在網頁中。</span>
+          </div>
+          <div class="chat-log" id="chatLog" aria-live="polite"></div>
+          <form class="chat-composer" id="chatForm">
+            <label class="sr-only" for="chatInput">輸入想和安安說的學習近況</label>
+            <div class="composer-field">
+              <textarea id="chatInput" rows="3" placeholder="可以很口語：安安，我最近某門課快跟不上，作業一直拖，想問老師但不知道怎麼講。"></textarea>
+              <button class="icon-button voice-button" id="voiceInputButton" type="button" title="語音輸入" aria-label="語音輸入"><i data-lucide="mic"></i></button>
             </div>
-            <div class="student-list" id="studentRiskList"></div>
-          </section>
-
-          <aside class="student-detail-card" id="studentDetail">
-            <div class="empty-detail">
-              <i data-lucide="panel-right-open"></i>
-              <h3>選擇一位學生</h3>
-              <p>這裡會顯示近期摘要、風險原因、建議行動與教師追蹤紀錄。</p>
-            </div>
-          </aside>
-        </div>
+            <button class="primary-button send-button" type="submit"><i data-lucide="send"></i>送出</button>
+          </form>
+        </section>
       </section>
     </main>
   </div>
@@ -227,10 +110,10 @@
   <dialog class="consent-dialog" id="usageConsentDialog" aria-labelledby="usageConsentTitle">
     <form method="dialog" class="consent-card" id="usageConsentForm">
       <h2 id="usageConsentTitle">使用說明</h2>
-      <p>本系統是國立東華大學學習關懷預警系統，協助學生在學習遇到卡點時整理問題、形成下一步行動，並提供教師端必要的學習支持摘要。</p>
-      <p>本系統不是心理諮商、醫療或緊急服務；若遇立即人身安全或校園緊急事件，請直接聯絡 119、110、校安中心或校內相關單位。</p>
-      <p>登入後，你與東東的文字內容、語音轉文字內容、回覆時間與學習摘要會保存為學習支持紀錄，供你回顧與教師端必要追蹤使用。</p>
-      <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用與角色說明</a>
+      <p>安安是國立東華大學學習關懷預警系統中的 AI 學習陪伴，協助你在對話中整理課業、時間安排、學習策略與求助方向。</p>
+      <p>安安會用溫和、友善、像學習導師的方式回應，但不取代心理諮商、醫療或緊急服務；若遇到急迫狀況，請直接聯絡校內外專業資源。</p>
+      <p>本頁不建立教師後台，也不保存你的完整對話。若你希望保留內容，可以自行下載對話紀錄，帶去和諮商師或你信任的人討論。</p>
+      <a href="docs/privacy-and-roles.md" target="_blank" rel="noopener">資料使用與安心說明</a>
       <label class="consent-line">
         <input id="usageConsentCheck" type="checkbox" required>
         <span>我已閱讀並了解以上說明</span>
@@ -247,13 +130,9 @@
       </div>
       <label>
         <span>Google Apps Script Web App URL</span>
-        <input id="gasEndpointInput" type="url" placeholder="貼上校方部署的 Web App URL">
+        <input id="gasEndpointInput" type="url" placeholder="貼上部署後的 Web App URL">
       </label>
-      <label>
-        <span>教師查詢 token</span>
-        <input id="teacherTokenInput" type="password" autocomplete="current-password">
-      </label>
-      <p class="dialog-note">連線資訊只保存在這台裝置。LLM API Key 請放在 GAS Script Properties 的 OPENAI_API_KEY，不要放在前台。</p>
+      <p class="dialog-note">OpenAI API Key 只放在 GAS Script Properties 的 <code>OPENAI_API_KEY</code>，不要放在前台或 GitHub。</p>
       <div class="form-actions">
         <button class="secondary-button" value="cancel">取消</button>
         <button class="primary-button" id="saveSettingsButton" value="default"><i data-lucide="check"></i>儲存</button>

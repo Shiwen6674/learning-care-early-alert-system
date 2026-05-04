@@ -1,530 +1,63 @@
-const SPREADSHEET_ID = "1MCCPpfNke0UimmqHsqhO3Qx23lnT5qVE4jo2hh7PDnw";
-const SHEETS = {
-  settings: "Settings",
-  colleges: "CollegesDepartments",
-  students: "Students",
-  teachers: "Teachers",
-  checkins: "LearningCheckins",
-  conversations: "Conversations",
-  risks: "RiskSignals",
-  plans: "InterventionPlans",
-  notes: "TeacherNotes",
-  referrals: "Referrals",
-  dashboard: "AnalyticsDashboard",
-  audit: "AuditLog"
-};
-
-const HEADERS = {
-  Settings: ["key", "value", "description", "updated_at"],
-  CollegesDepartments: ["college", "department", "degree_level", "source_note", "active"],
-  Students: ["student_id", "name", "email", "college", "department", "year", "consent_status", "status", "created_at", "last_seen_at", "risk_level", "risk_score", "primary_need", "latest_summary"],
-  Teachers: ["teacher_id", "name", "email", "role", "college", "department", "can_view_scope", "status", "created_at", "last_seen_at"],
-  LearningCheckins: ["checkin_id", "timestamp", "student_id", "student_name", "email", "college", "department", "year", "course_name", "difficulty_type", "difficulty_score", "attendance_status", "preferred_support", "follow_up_date", "risk_level", "risk_score", "tags", "summary", "recommendations_json", "raw_json"],
-  Conversations: ["conversation_id", "timestamp", "student_id", "student_name", "college", "department", "message", "agent_reply", "risk_level", "risk_score", "tags", "summary", "visibility_to_teacher", "raw_json"],
-  RiskSignals: ["signal_id", "timestamp", "student_id", "student_name", "source", "category", "severity", "evidence", "risk_score", "status", "due_date", "resolved_at"],
-  InterventionPlans: ["plan_id", "created_at", "student_id", "teacher_email", "priority", "concern", "action_plan", "student_strength", "next_meeting_date", "status", "outcome_note"],
-  TeacherNotes: ["note_id", "timestamp", "teacher_email", "teacher_name", "student_id", "note", "visibility"],
-  Referrals: ["referral_id", "timestamp", "student_id", "referral_type", "unit", "reason", "status", "handled_by", "handled_at", "note"],
-  AnalyticsDashboard: ["metric", "value", "formula_or_source", "updated_at"],
-  AuditLog: ["timestamp", "actor_email", "role", "action", "ok", "message"]
-};
-
 function doGet(e) {
   const params = e && e.parameter ? e.parameter : {};
   const action = String(params.action || "status");
   let result;
   try {
-    setup_();
-    if (action === "setup") {
-      assertAdmin_(params);
-      setup_();
-      result = { ok: true, message: "資料表已就緒", generatedAt: new Date().toISOString() };
-    } else if (action === "teacherDashboard") {
-      assertTeacher_(params);
-      result = { ok: true, records: buildTeacherDashboard_(), generatedAt: new Date().toISOString() };
-    } else if (action === "llmChat") {
+    if (action === "llmChat") {
       result = chatWithOpenAI_(parseJson_(params.payload || "{}", {}));
-    } else if (action === "studentProfile") {
-      result = { ok: true, profile: buildStudentProfile_(params.studentId || ""), generatedAt: new Date().toISOString() };
     } else {
-      result = { ok: true, service: "ndhu-learning-warning", generatedAt: new Date().toISOString() };
+      result = {
+        ok: true,
+        service: "ndhu-lceas-anan",
+        privacy: "This endpoint does not write conversations to a spreadsheet.",
+        generatedAt: new Date().toISOString()
+      };
     }
-    audit_(params.email || "", params.role || "", action, true, "");
   } catch (err) {
     result = { ok: false, error: err && err.message ? err.message : String(err) };
-    audit_(params.email || "", params.role || "", action, false, result.error);
   }
   return output_(result, params.callback);
 }
 
 function doPost(e) {
   let payload = {};
-  let action = "";
   try {
-    setup_();
     payload = parseBody_(e);
-    action = String(payload.action || "");
-    let result;
-    const lock = LockService.getScriptLock();
-    lock.waitLock(10000);
-    try {
-      if (action === "register") result = register_(payload.user || {});
-      else if (action === "login") result = login_(payload.user || {});
-      else if (action === "requestPasswordReset") result = requestPasswordReset_(payload.user || {}, payload.resetCode || "", payload.resetExpiresAt || "");
-      else if (action === "passwordReset") result = passwordReset_(payload.user || {});
-      else if (action === "submitCheckin") result = submitCheckin_(payload.checkin || {});
-      else if (action === "submitConversation") result = submitConversation_(payload.conversation || {});
-      else if (action === "teacherNote") result = teacherNote_(payload.note || {});
-      else if (action === "llmChat") result = chatWithOpenAI_(payload.input || payload);
-      else if (action === "riskAnalysis") result = { ok: true, analysis: analyzeWithOpenAI_(payload.input || payload) };
-      else result = { ok: true, message: "已收到資料" };
-    } finally {
-      lock.releaseLock();
-    }
-    audit_(payload.email || "", payload.role || "", action, true, "");
+    const action = String(payload.action || "");
+    const result = action === "llmChat"
+      ? chatWithOpenAI_(payload.input || payload)
+      : { ok: true, message: "安安 AI 代理已就緒；此版本不保存對話。" };
     return output_(result, payload.callback);
   } catch (err) {
-    const message = err && err.message ? err.message : String(err);
-    audit_(payload.email || "", payload.role || "", action, false, message);
-    return output_({ ok: false, error: message }, payload.callback);
+    return output_({ ok: false, error: err && err.message ? err.message : String(err) }, payload.callback);
   }
 }
 
 function manualSetup() {
-  setup_();
-  return "東華大學學生學習預警輔導系統資料表已就緒。";
-}
-
-function setup_() {
-  Object.keys(HEADERS).forEach(function (name) {
-    getSheet_(name, HEADERS[name]);
-  });
-}
-
-function parseBody_(e) {
-  if (!e || !e.postData || !e.postData.contents) return {};
-  try {
-    return JSON.parse(e.postData.contents);
-  } catch (err) {
-    return { raw: e.postData.contents };
-  }
-}
-
-function ss_() {
-  if (SPREADSHEET_ID) return SpreadsheetApp.openById(SPREADSHEET_ID);
-  return SpreadsheetApp.getActiveSpreadsheet();
-}
-
-function getSheet_(name, headers) {
-  const ss = ss_();
-  if (!ss) throw new Error("找不到試算表，請確認 SPREADSHEET_ID 或從試算表開啟 Apps Script。");
-  let sheet = ss.getSheetByName(name);
-  if (!sheet) sheet = ss.insertSheet(name);
-  const current = sheet.getLastRow() > 0
-    ? sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), headers.length)).getValues()[0].map(String)
-    : [];
-  let needsHeader = sheet.getLastRow() === 0;
-  headers.forEach(function (header, index) {
-    if (current[index] !== header) needsHeader = true;
-  });
-  if (needsHeader) {
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-    sheet.setFrozenRows(1);
-  }
-  return sheet;
-}
-
-function register_(user) {
-  const role = String(user.role || "student");
-  if (role === "teacher") {
-    upsertByKey_(SHEETS.teachers, "email", normalizeTeacher_(user));
-  } else {
-    upsertByKey_(SHEETS.students, "student_id", normalizeStudent_(user));
-  }
-  return { ok: true, role: role };
-}
-
-function login_(user) {
-  const role = String(user.role || "student");
-  const email = String(user.email || "");
-  if (!email) throw new Error("ç¼ºå°‘ç™»å…¥ä¿¡ç®±ã€‚");
-  if (role === "teacher") touchLastSeen_(SHEETS.teachers, "email", email);
-  else touchLastSeen_(SHEETS.students, "email", email);
-  return { ok: true, role: role };
-}
-
-function requestPasswordReset_(user, resetCode, resetExpiresAt) {
-  const email = String(user.email || "").trim();
-  if (!email) throw new Error("ç¼ºå°‘å¯†ç¢¼ä¿®æ”¹ä¿¡ç®±ã€‚");
-  if (!resetCode) throw new Error("ç¼ºå°‘å¯†ç¢¼ä¿®æ”¹èªè­‰ç¢¼ã€‚");
-  const expires = resetExpiresAt ? new Date(resetExpiresAt) : new Date(Date.now() + 15 * 60 * 1000);
-  const subject = "LCEAS å¯†ç¢¼ä¿®æ”¹èªè­‰ç¢¼";
-  const body = [
-    "ä½ å¥½ï¼Œ",
-    "",
-    "ä½ å·²ç”³è«‹ LCEAS åœ‹ç«‹æ±è¯å¤§å­¸å­¸ç¿’ç…§è­·é è­¦ç³»çµ±çš„å¯†ç¢¼ä¿®æ”¹èªè­‰ã€‚",
-    "èªè­‰ç¢¼ï¼š" + resetCode,
-    "æœ‰æ•ˆæ™‚é–“ï¼š" + Utilities.formatDate(expires, Session.getScriptTimeZone(), "yyyy/MM/dd HH:mm"),
-    "",
-    "è‹¥ä½ æ²’æœ‰ç”³è«‹ä¿®æ”¹å¯†ç¢¼ï¼Œå¯ä»¥å¿½ç•¥é€™å°ä¿¡ã€‚"
-  ].join("\n");
-  MailApp.sendEmail(email, subject, body);
-  audit_(email, user.role || "", "requestPasswordResetEmail", true, "sent");
-  return { ok: true, email: email, expiresAt: expires.toISOString() };
-}
-
-function passwordReset_(user) {
-  const role = String(user.role || "student");
-  const email = String(user.email || "");
-  if (!email) throw new Error("ç¼ºå°‘å¯†ç¢¼ä¿®æ”¹ä¿¡ç®±ã€‚");
-  if (role === "teacher") touchLastSeen_(SHEETS.teachers, "email", email);
-  else touchLastSeen_(SHEETS.students, "email", email);
-  return { ok: true, role: role };
-}
-
-function submitCheckin_(checkin) {
-  const analysis = checkin.analysis || {};
-  appendObject_(SHEETS.checkins, {
-    checkin_id: checkin.checkinId || uuid_("checkin"),
-    timestamp: checkin.createdAt || new Date(),
-    student_id: checkin.studentId || "",
-    student_name: checkin.studentName || "",
-    email: checkin.email || "",
-    college: checkin.college || "",
-    department: checkin.department || "",
-    year: checkin.year || "",
-    course_name: checkin.courseName || "",
-    difficulty_type: checkin.difficultyType || "",
-    difficulty_score: checkin.difficultyScore || "",
-    attendance_status: checkin.attendanceStatus || "",
-    preferred_support: checkin.preferredSupport || "",
-    follow_up_date: checkin.followUpDate || "",
-    risk_level: analysis.level || "",
-    risk_score: analysis.score || "",
-    tags: (analysis.tags || []).join("、"),
-    summary: analysis.summary || "",
-    recommendations_json: JSON.stringify(analysis.recommendations || []),
-    raw_json: JSON.stringify(checkin)
-  });
-  updateStudentRisk_(checkin);
-  if (Number(analysis.score || 0) >= 35) {
-    appendRisk_(checkin, "checkin");
-  }
-  return { ok: true };
-}
-
-function submitConversation_(conversation) {
-  const analysis = conversation.analysis || {};
-  appendObject_(SHEETS.conversations, {
-    conversation_id: conversation.conversationId || uuid_("conv"),
-    timestamp: conversation.createdAt || new Date(),
-    student_id: conversation.studentId || "",
-    student_name: conversation.studentName || "",
-    college: conversation.college || "",
-    department: conversation.department || "",
-    message: conversation.text || "",
-    agent_reply: conversation.agentReply || "",
-    risk_level: analysis.level || "",
-    risk_score: analysis.score || "",
-    tags: (analysis.tags || []).join("、"),
-    summary: analysis.summary || "",
-    visibility_to_teacher: "summary",
-    raw_json: JSON.stringify(conversation)
-  });
-  if (Number(analysis.score || 0) >= 55) {
-    appendRisk_(conversation, "conversation");
-  }
-  return { ok: true };
-}
-
-function teacherNote_(note) {
-  appendObject_(SHEETS.notes, {
-    note_id: note.noteId || uuid_("note"),
-    timestamp: note.createdAt || new Date(),
-    teacher_email: note.teacherEmail || "",
-    teacher_name: note.teacherName || "",
-    student_id: note.studentId || "",
-    note: note.note || "",
-    visibility: note.visibility || "teacher"
-  });
-  return { ok: true };
-}
-
-function normalizeStudent_(user) {
-  return {
-    student_id: user.id || user.studentId || uuid_("student"),
-    name: user.name || "",
-    email: user.email || "",
-    college: user.college || "",
-    department: user.department || "",
-    year: user.year || "",
-    consent_status: user.consent ? "agreed" : "pending",
-    status: "active",
-    created_at: new Date(),
-    last_seen_at: new Date(),
-    risk_level: "",
-    risk_score: "",
-    primary_need: "",
-    latest_summary: ""
-  };
-}
-
-function normalizeTeacher_(user) {
-  return {
-    teacher_id: user.id || user.teacherId || uuid_("teacher"),
-    name: user.name || "",
-    email: user.email || "",
-    role: "teacher",
-    college: user.college || "",
-    department: user.department || "",
-    can_view_scope: user.department || user.college || "",
-    status: "active",
-    created_at: new Date(),
-    last_seen_at: new Date()
-  };
-}
-
-function updateStudentRisk_(checkin) {
-  const analysis = checkin.analysis || {};
-  const row = normalizeStudent_({
-    id: checkin.studentId,
-    name: checkin.studentName,
-    email: checkin.email,
-    college: checkin.college,
-    department: checkin.department,
-    year: checkin.year,
-    consent: true
-  });
-  row.risk_level = analysis.level || "";
-  row.risk_score = analysis.score || "";
-  row.primary_need = (analysis.tags || []).join("、");
-  row.latest_summary = analysis.summary || "";
-  upsertByKey_(SHEETS.students, "student_id", row);
-}
-
-function appendRisk_(source, sourceName) {
-  const analysis = source.analysis || {};
-  appendObject_(SHEETS.risks, {
-    signal_id: uuid_("risk"),
-    timestamp: new Date(),
-    student_id: source.studentId || "",
-    student_name: source.studentName || "",
-    source: sourceName,
-    category: (analysis.tags || []).join("、"),
-    severity: analysis.level || "",
-    evidence: analysis.summary || "",
-    risk_score: analysis.score || "",
-    status: analysis.level === "立即轉介" ? "需要立即處理" : "待追蹤",
-    due_date: source.followUpDate || "",
-    resolved_at: ""
-  });
-}
-
-function appendObject_(sheetName, object) {
-  const headers = HEADERS[sheetName];
-  const sheet = getSheet_(sheetName, headers);
-  const row = headers.map(function (header) {
-    return object[header] === undefined || object[header] === null ? "" : object[header];
-  });
-  sheet.getRange(sheet.getLastRow() + 1, 1, 1, headers.length).setValues([row]);
-}
-
-function upsertByKey_(sheetName, keyHeader, object) {
-  const headers = HEADERS[sheetName];
-  const sheet = getSheet_(sheetName, headers);
-  const keyIndex = headers.indexOf(keyHeader);
-  if (keyIndex < 0) throw new Error("找不到 key 欄位：" + keyHeader);
-  const keyValue = String(object[keyHeader] || "").trim();
-  if (!keyValue) throw new Error("缺少必要識別資料：" + keyHeader);
-  const values = sheet.getLastRow() > 1
-    ? sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues()
-    : [];
-  let targetRow = -1;
-  values.forEach(function (row, index) {
-    if (String(row[keyIndex]).trim() === keyValue) targetRow = index + 2;
-  });
-  const rowValues = headers.map(function (header) {
-    return object[header] === undefined || object[header] === null ? "" : object[header];
-  });
-  if (targetRow > 0) sheet.getRange(targetRow, 1, 1, headers.length).setValues([rowValues]);
-  else sheet.getRange(sheet.getLastRow() + 1, 1, 1, headers.length).setValues([rowValues]);
-}
-
-function touchLastSeen_(sheetName, keyHeader, keyValue) {
-  const headers = HEADERS[sheetName];
-  const sheet = getSheet_(sheetName, headers);
-  const keyIndex = headers.indexOf(keyHeader);
-  const seenIndex = headers.indexOf("last_seen_at");
-  if (keyIndex < 0 || seenIndex < 0) return;
-  if (sheet.getLastRow() <= 1) return;
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
-  values.forEach(function (row, index) {
-    if (String(row[keyIndex]).trim().toLowerCase() === String(keyValue || "").trim().toLowerCase()) {
-      sheet.getRange(index + 2, seenIndex + 1).setValue(new Date());
-    }
-  });
-}
-
-function buildTeacherDashboard_() {
-  const rows = readObjects_(SHEETS.checkins);
-  const latest = {};
-  rows.forEach(function (row) {
-    const studentId = String(row.student_id || "");
-    if (!studentId) return;
-    if (!latest[studentId] || String(row.timestamp) > String(latest[studentId].timestamp)) {
-      latest[studentId] = row;
-    }
-  });
-  return Object.keys(latest).map(function (id) {
-    const row = latest[id];
-    return {
-      studentId: row.student_id,
-      studentName: row.student_name,
-      email: row.email,
-      college: row.college,
-      department: row.department,
-      year: row.year,
-      courseName: row.course_name,
-      level: row.risk_level || "穩定",
-      score: Number(row.risk_score || 0),
-      tags: String(row.tags || "").split("、").filter(Boolean),
-      reasons: row.summary ? [row.summary] : [],
-      recommendations: parseJson_(row.recommendations_json, []),
-      summary: row.summary || "",
-      followUpDate: row.follow_up_date || "",
-      preferredSupport: row.preferred_support || "",
-      createdAt: row.timestamp
-    };
-  }).sort(function (a, b) {
-    return b.score - a.score;
-  });
-}
-
-function buildStudentProfile_(studentId) {
-  if (!studentId) return null;
-  const students = readObjects_(SHEETS.students);
-  return students.filter(function (row) {
-    return String(row.student_id) === String(studentId);
-  })[0] || null;
-}
-
-function readObjects_(sheetName) {
-  const headers = HEADERS[sheetName];
-  const sheet = getSheet_(sheetName, headers);
-  if (sheet.getLastRow() <= 1) return [];
-  const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
-  return values.map(function (row) {
-    const object = {};
-    headers.forEach(function (header, index) {
-      object[header] = row[index];
-    });
-    return object;
-  });
-}
-
-function assertTeacher_(params) {
-  assertAdmin_(params);
-  return true;
-}
-
-function assertAdmin_(params) {
-  const expected = PropertiesService.getScriptProperties().getProperty("ADMIN_SHARED_SECRET");
-  if (!expected) return true;
-  const token = String(params.token || params.adminToken || "");
-  if (token !== expected) throw new Error("教師端權限驗證未通過。");
-  return true;
-}
-
-function audit_(email, role, action, ok, message) {
-  try {
-    appendObject_(SHEETS.audit, {
-      timestamp: new Date(),
-      actor_email: email || "",
-      role: role || "",
-      action: action || "",
-      ok: ok ? "TRUE" : "FALSE",
-      message: message || ""
-    });
-  } catch (err) {
-    console.warn(err);
-  }
-}
-
-function analyzeWithOpenAI_(input) {
-  const apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
-  if (!apiKey) return null;
-  const model = PropertiesService.getScriptProperties().getProperty("OPENAI_MODEL") || "gpt-5.2";
-  const payload = {
-    model: model,
-    input: [
-      {
-        role: "system",
-        content: [{ type: "input_text", text: "你是大學學習預警輔導系統的分析助手。只分析學習支持，不做醫療診斷。若出現自傷或立即危險訊號，level 必須是「立即轉介」。回傳繁體中文 JSON。" }]
-      },
-      {
-        role: "user",
-        content: [{ type: "input_text", text: JSON.stringify(input) }]
-      }
-    ],
-    text: {
-      format: {
-        type: "json_schema",
-        name: "learning_support_analysis",
-        strict: true,
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            level: { type: "string", enum: ["穩定", "觀察", "優先關懷", "立即轉介"] },
-            score: { type: "number" },
-            tags: { type: "array", items: { type: "string" } },
-            summary: { type: "string" },
-            reasons: { type: "array", items: { type: "string" } },
-            recommendations: { type: "array", items: { type: "string" } }
-          },
-          required: ["level", "score", "tags", "summary", "reasons", "recommendations"]
-        }
-      }
-    },
-    max_output_tokens: 900
-  };
-
-  const response = UrlFetchApp.fetch("https://api.openai.com/v1/responses", {
-    method: "post",
-    contentType: "application/json",
-    headers: { Authorization: "Bearer " + apiKey },
-    payload: JSON.stringify(payload),
-    muteHttpExceptions: true
-  });
-  const status = response.getResponseCode();
-  const data = JSON.parse(response.getContentText() || "{}");
-  if (status >= 300) throw new Error(data.error && data.error.message ? data.error.message : "OpenAI 分析失敗");
-  const text = extractOutputText_(data);
-  return text ? JSON.parse(text) : null;
+  return "LCEAS 安安 AI 代理已就緒。請在 Script Properties 設定 OPENAI_API_KEY；此版本不建立教師後台，也不保存對話。";
 }
 
 function chatWithOpenAI_(input) {
   const apiKey = PropertiesService.getScriptProperties().getProperty("OPENAI_API_KEY");
   if (!apiKey) throw new Error("尚未設定 OPENAI_API_KEY。");
-  const model = PropertiesService.getScriptProperties().getProperty("OPENAI_MODEL") || "gpt-5.2";
-  const user = input.user || {};
-  const analysis = input.analysis || {};
-  const history = Array.isArray(input.history) ? input.history.slice(-8) : [];
+  const model = PropertiesService.getScriptProperties().getProperty("OPENAI_MODEL") || "gpt-5.4-mini";
+  const context = input.context || {};
+  const history = Array.isArray(input.history) ? input.history.slice(-10) : [];
   const profile = [
-    user.name ? "姓名：" + user.name : "",
-    user.college ? "學院：" + user.college : "",
-    user.department ? "系所：" + user.department : "",
-    user.year ? "年級：" + user.year : ""
+    context.nickname ? "稱呼：" + context.nickname : "",
+    context.college ? "學院：" + context.college : "",
+    context.department ? "系所：" + context.department : ""
   ].filter(Boolean).join("；");
 
   const prompt = [
-    "你是「東東」，國立東華大學學習關懷預警系統的學習陪伴聊天角色。",
-    "任務：陪學生釐清課程、作業、考試準備、跨域修課、時間安排等學習問題，接住學生上一句話，提出一個具體、可行、很小的下一步。",
-    "語氣：繁體中文、溫暖、自然、像學習陪伴窗口；要接話，不要句點式結束。",
-    "限制：不要宣稱你是心理師、醫師或緊急服務；不要做醫療診斷；除非學生主動提到立即危險，不要主動出現自傷、自殺等字眼。",
-    "格式：2 到 4 個短段落即可；可以用簡短條列，但不要固定模板；最後一定問一個容易回答的追問。",
-    "學生背景：" + (profile || "未提供"),
-    "本機初步摘要：" + JSON.stringify(analysis),
+    "你是「安安」，國立東華大學學習關懷預警系統 LCEAS 的 AI 學習陪伴角色。",
+    "角色設定：請扮演一位溫和、友善、能陪學生整理學習困難的導師型 AI。你要接住學生的上一句話，讓學生願意繼續說，而不是句點式結束。",
+    "任務範圍：協助釐清課程進度、作業、考試準備、跨域修課、時間安排、學習策略與求助表達。把模糊的大問題整理成一個可行的小步驟。",
+    "隱私邊界：不要說你已保存、通報或交給教師；本系統不建立教師後台，也不保存完整對話。若學生想保留內容，可以提醒學生自行下載對話紀錄。",
+    "專業邊界：你可以提供學習陪伴與溫和引導，但不要宣稱自己取代心理諮商、醫療或緊急服務；除非學生主動提到急迫危險，不要主動使用驚嚇或危機字眼。",
+    "語氣：繁體中文、自然、柔和、具體，不要像公告，不要像客服範本。稱呼學生時保持尊重，不過度親暱。",
+    "格式：2 到 4 個短段落；可以偶爾使用短條列；最後一定問一個很容易回答的追問。",
+    "學生提供的背景：" + (profile || "未提供"),
     "最近對話：" + JSON.stringify(history),
     "學生最新訊息：" + String(input.message || "")
   ].join("\n");
@@ -534,7 +67,7 @@ function chatWithOpenAI_(input) {
     input: [
       {
         role: "system",
-        content: [{ type: "input_text", text: "你只能回覆繁體中文。你是學習支持聊天代理，不取代專業諮商或緊急服務。請自然接話並引導下一步。" }]
+        content: [{ type: "input_text", text: "你只能回覆繁體中文。你是安安，國立東華大學 LCEAS 的溫和友善學習陪伴導師型 AI；不保存對話、不建立教師後台、不取代專業諮商。" }]
       },
       {
         role: "user",
@@ -558,8 +91,17 @@ function chatWithOpenAI_(input) {
   return {
     ok: true,
     model: model,
-    reply: reply || "我有收到。你可以再補一句目前最卡的地方，東東會陪你往下整理。"
+    reply: reply || "我有收到。你可以再補一句目前最卡的地方，安安會陪你往下整理。"
   };
+}
+
+function parseBody_(e) {
+  if (!e || !e.postData || !e.postData.contents) return {};
+  try {
+    return JSON.parse(e.postData.contents);
+  } catch (err) {
+    return { raw: e.postData.contents };
+  }
 }
 
 function extractOutputText_(data) {
@@ -590,8 +132,4 @@ function parseJson_(text, fallback) {
   } catch (err) {
     return fallback;
   }
-}
-
-function uuid_(prefix) {
-  return prefix + "_" + Utilities.getUuid().replace(/-/g, "").slice(0, 18);
 }
