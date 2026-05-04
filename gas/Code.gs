@@ -81,6 +81,8 @@ function chatWithOpenAI_(input) {
         content: [{ type: "input_text", text: prompt }]
       }
     ],
+    reasoning: { effort: "minimal" },
+    text: { verbosity: "low" },
     max_output_tokens: 1600
   };
 
@@ -138,6 +140,8 @@ function summarizeConversation_(input) {
         content: [{ type: "input_text", text: prompt }]
       }
     ],
+    reasoning: { effort: "minimal" },
+    text: { verbosity: "low" },
     max_output_tokens: 1600
   };
 

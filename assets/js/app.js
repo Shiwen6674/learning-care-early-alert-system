@@ -102,6 +102,14 @@
     const form = $("#usageConsentForm");
     if (!check || !button || !form) return;
 
+    function openConsentOverlay() {
+      showView("entryView");
+      check.checked = false;
+      button.disabled = true;
+      $("#consentView").classList.remove("hidden");
+      window.setTimeout(() => check.focus(), 80);
+    }
+
     check.addEventListener("change", () => {
       button.disabled = !check.checked;
     });
@@ -110,14 +118,11 @@
       event.preventDefault();
       if (!check.checked) return;
       localStorage.setItem(CONSENT_KEY, "accepted");
+      $("#consentView").classList.add("hidden");
       showView("entryView");
     });
 
-    if (localStorage.getItem(CONSENT_KEY) === "accepted") {
-      showView("entryView");
-    } else {
-      showView("consentView");
-    }
+    openConsentOverlay();
   }
 
   function populateProfileOptions() {
@@ -238,7 +243,7 @@
     node.className = "message agent pending";
     node.innerHTML = `
       <strong>安安</strong>
-      <span>...</span>
+      <span>思考中...</span>
       <time datetime="${escapeHtml(new Date().toISOString())}">${escapeHtml(formatMessageTime())}</time>
     `;
     $("#chatLog").appendChild(node);

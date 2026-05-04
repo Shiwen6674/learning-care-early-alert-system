@@ -110,8 +110,18 @@ button:disabled {
 }
 
 .consent-view {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
   display: grid;
   place-items: center;
+  min-height: 100vh;
+  padding: clamp(18px, 4vw, 44px);
+  overflow: auto;
+  background:
+    linear-gradient(rgba(35, 49, 58, .34), rgba(35, 49, 58, .34)),
+    rgba(247, 250, 246, .74);
+  backdrop-filter: blur(7px);
 }
 
 .consent-card,
