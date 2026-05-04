@@ -173,7 +173,7 @@ button {
 
 .entry-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(360px, .72fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(18px, 3vw, 34px);
   align-items: stretch;
 }
@@ -197,7 +197,7 @@ button {
   box-shadow: none;
   min-height: auto;
   display: grid;
-  grid-template-rows: clamp(240px, 32vh, 320px) auto;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 16px;
 }
 
@@ -316,7 +316,7 @@ h3 {
 
 .auth-card {
   padding: 22px;
-  align-self: start;
+  align-self: stretch;
 }
 
 .segmented {
@@ -873,7 +873,6 @@ meter {
 }
 
 @media (max-width: 1120px) {
-  .entry-layout,
   .student-layout,
   .chat-and-form,
   .teacher-workspace {
@@ -887,6 +886,12 @@ meter {
   .quick-need-grid,
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .entry-layout {
+    grid-template-columns: 1fr;
   }
 }
 
