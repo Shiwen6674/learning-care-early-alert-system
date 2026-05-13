@@ -3,19 +3,20 @@
 
   const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbw9A4n_9XskiPQidcaZLSbkweI1BXG_QMywC5BXnIUv_YIOVEyhu5VlYPid0yuxJtuZ/exec";
   const SETTINGS_KEY = "ndhu.learning.anan.settings.v2";
-  const CONSENT_KEY = "ndhu.learning.anan.usageConsent.v4";
+  const CONSENT_KEY = "ndhu.learning.anan.usageConsent.v5";
   const SESSION_COUNT_KEY = "ndhu.learning.anan.sessionCount.v1";
   const AUTH_STORE_KEY = "ndhu.learning.anan.students.v1";
   const CURRENT_USER_KEY = "ndhu.learning.anan.currentStudent.v1";
   const DAILY_TURN_KEY = "ndhu.learning.anan.dailyTurns.v1";
-  const DAILY_TURN_LIMIT = 25;
+  const DAILY_TURN_LIMIT = 20;
   const LLM_TIMEOUT_MS = 90000;
-  const LIMIT_DIALOG_TEXT = "同學您好，您的問題可以進一步洽詢學校導師、行政人員或心理諮商中心，相信可以獲得更好的協助。";
+  const LIMIT_DIALOG_TEXT = "今天的對話次數已經用完了。若你現在很需要有人陪你一起處理，請先找導師、系辦、學務處或心理諮商輔導中心；若有立即安全疑慮，請直接聯繫校安或緊急求助。";
   const DEFAULT_SETTINGS = { gasEndpoint: GAS_ENDPOINT };
   const state = {
     settings: Object.assign({}, DEFAULT_SETTINGS),
     messages: [],
     sessionNumber: 0,
+    sessionId: "",
     reportAnalysis: "",
     students: [],
     authMode: "register",
@@ -184,7 +185,7 @@
   }
 
   function nextSessionNumber() {
-    const identity = normalizeEmail(state.profile.email) || normalizedStudentId() || "UNKNOWN";
+    const identity = normalizedStudentId() || normalizeEmail(state.profile.email) || "UNKNOWN";
     const key = `${SESSION_COUNT_KEY}.${identity}`;
     const current = Number.parseInt(localStorage.getItem(key) || "0", 10);
     const next = Number.isFinite(current) ? current + 1 : 1;
@@ -196,22 +197,26 @@
     return new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Taipei" });
   }
 
-  function dailyTurnStorageKey(email = state.profile.email) {
-    return `${DAILY_TURN_KEY}.${normalizeEmail(email) || "unknown"}.${todayKey()}`;
+  function dailyLimitIdentity() {
+    return normalizedStudentId() || normalizeEmail(state.profile.email) || "unknown";
   }
 
-  function getDailyTurnCount(email = state.profile.email) {
-    const count = Number.parseInt(localStorage.getItem(dailyTurnStorageKey(email)) || "0", 10);
+  function dailyTurnStorageKey() {
+    return `${DAILY_TURN_KEY}.${dailyLimitIdentity()}.${todayKey()}`;
+  }
+
+  function getDailyTurnCount() {
+    const count = Number.parseInt(localStorage.getItem(dailyTurnStorageKey()) || "0", 10);
     return Number.isFinite(count) ? count : 0;
   }
 
-  function setDailyTurnCount(count, email = state.profile.email) {
-    localStorage.setItem(dailyTurnStorageKey(email), String(Math.max(0, Number(count) || 0)));
+  function setDailyTurnCount(count) {
+    localStorage.setItem(dailyTurnStorageKey(), String(Math.max(0, Number(count) || 0)));
   }
 
-  function incrementDailyTurnCount(email = state.profile.email) {
-    const next = getDailyTurnCount(email) + 1;
-    setDailyTurnCount(next, email);
+  function incrementDailyTurnCount() {
+    const next = getDailyTurnCount() + 1;
+    setDailyTurnCount(next);
     return next;
   }
 
@@ -317,7 +322,8 @@
   }
 
   function prepareChatSession() {
-    state.sessionNumber = nextSessionNumber();
+    state.sessionNumber = 0;
+    state.sessionId = uid("session");
     state.messages = [];
     state.reportAnalysis = "";
     $("#chatLog").innerHTML = "";
@@ -489,10 +495,11 @@
       role: "agent",
       text: reply.text,
       timestamp: new Date().toISOString(),
-      meta: reply.source === "llm" ? "AI" : "",
+      meta: "",
       sequence: state.messages.length + 1
     };
     state.messages.push(replyMessage);
+    if (Number(reply.sessionNumber) > 0) state.sessionNumber = Number(reply.sessionNumber);
     if (reply.source === "llm") {
       const dailyTurnCount = Number(reply.dailyTurnCount || 0);
       if (dailyTurnCount > 0) setDailyTurnCount(dailyTurnCount);
@@ -534,6 +541,7 @@
       history,
       clientTime: new Date().toISOString(),
       inputMethod,
+      sessionId: state.sessionId,
       sessionNumber: state.sessionNumber,
       dailyTurnLimit: DAILY_TURN_LIMIT,
       clientDailyTurnCount: getDailyTurnCount()
@@ -543,7 +551,7 @@
       const data = await requestGas("llmChat", payload, LLM_TIMEOUT_MS);
       if (data && data.limitReached) return { limitReached: true };
       if (data && data.ok && safeText(data.reply)) {
-        return { text: safeText(data.reply), source: "llm", dailyTurnCount: data.dailyTurnCount };
+        return { text: safeText(data.reply), source: "llm", dailyTurnCount: data.dailyTurnCount, sessionNumber: data.sessionNumber };
       }
       if (data && data.error) {
         if (data.error === "DAILY_LIMIT_REACHED" || data.error === LIMIT_DIALOG_TEXT) return { limitReached: true };
@@ -708,13 +716,31 @@
     if (/時間|打工|通勤|社團|排程|來不及/.test(combined)) topicHints.push("時間安排");
     if (/聽不懂|看不懂|概念|公式|統計|程式|英文|跨域/.test(combined)) topicHints.push("概念理解");
     if (/問老師|助教|不敢問|開口|討論/.test(combined)) topicHints.push("求助表達");
+    if (/情緒|焦慮|憂鬱|恐慌|睡不著|孤單|很痛苦|很想死|想死|霸凌|被霸凌|打架|肢體衝突|受傷|校安|不安全|安全疑慮/.test(combined)) topicHints.push("情緒與安全支持");
     const topics = topicHints.length ? topicHints.join("、") : "目前談到的學習卡點";
+    const name = state.profile.nickname || "同學";
     const first = userTexts[0] || "你提到目前學習上有些卡住";
     const last = userTexts[userTexts.length - 1] || first;
+    const excerpt = (text) => {
+      const clean = safeText(text).replace(/\s+/g, " ");
+      return clean.length > 44 ? `${clean.slice(0, 44)}...` : clean;
+    };
+    const hasSafetyConcern = /很想死|想死|自傷|傷害自己|傷人|打架|肢體衝突|受傷|校安|不安全|安全疑慮|霸凌|被霸凌/.test(combined);
+    const hasHighDistress = /很想死|想死|快撐不住|很痛苦|絕望|焦慮|憂鬱|恐慌|睡不著/.test(combined);
+    const supportTarget = hasSafetyConcern ? "校安、導師、系辦或諮商中心" : "導師、助教、系辦或諮商中心";
+
+    if (hasSafetyConcern || hasHighDistress) {
+      return [
+        `${name}，謝謝你願意把這些話留下來。你提到「${excerpt(first)}」，後面又補充「${excerpt(last)}」，這些都不是小事；當學業壓力、人際衝突或不安全感一起出現時，人會覺得慌、很累，甚至不知道下一步要怎麼開口，這是可以被理解的。`,
+        `從這段對話看起來，你其實已經在努力求助，也願意讓身邊的人知道現在需要協助。接下來請先把安全放在最前面：如果事情還在現場、有人受傷，或你擔心衝突又發生，請優先聯繫校安或身邊可信任的人，讓你不是一個人面對。`,
+        `如果狀況暫時安全，可以把這份紀錄帶著，找${supportTarget}談。你可以直接說：「我最近因為學業和人際狀況，已經影響到生活和學習，我需要有人陪我整理接下來怎麼處理。」這樣說就夠了，不需要把所有事情一次講完。`
+      ].join("\n\n");
+    }
+
     return [
-      `${state.profile.nickname || "同學"}，這次對話中，你主要談到「${topics}」。從你一開始提到「${first}」，到後面補充「${last}」，可以看見你不是沒有在意學習，而是目前需要把事情縮小到更容易開始的一步。`,
-      "安安在對話中陪你做的事，是先把壓力感接住，再把模糊的困難整理成可以描述、可以求助、可以安排的小行動。接下來最適合延續的方向，是先挑一門最急或最影響成績的課，用短時間完成一個很小的動作，再回頭看下一步。",
-      "你可以把這份紀錄當成自己的學習整理單：不用一次解決全部，只要先找到一個能開始的位置。"
+      `${name}，你願意把「${topics}」說出來，已經是在替自己找一個出口。從「${excerpt(first)}」到「${excerpt(last)}」，可以感覺你不是不想處理，而是壓力累積到一個人很難安靜整理。`,
+      "我想先回饋你一件事：現在最需要的不是逼自己立刻變得很有方法，而是先讓問題被看見、被說清楚。當作業、考試或時間壓在一起時，先有人陪你分辨哪一件最急、哪一件可以求助，會比自己硬撐來得穩。",
+      `接下來可以帶著這份紀錄找${supportTarget}談，請對方陪你一起確認優先順序。若你想先自己準備，也可以先寫下三句話：我現在卡在哪裡、它已經影響到什麼、我希望對方怎麼幫我。這樣開口時會比較有依靠。`
     ].join("\n\n");
   }
 
@@ -845,11 +871,11 @@
     const pageSize = pdf.internal.pageSize;
     const width = typeof pageSize.getWidth === "function" ? pageSize.getWidth() : pageSize.width;
     const height = typeof pageSize.getHeight === "function" ? pageSize.getHeight() : pageSize.height;
-    for (let page = 3; page <= totalPages; page += 1) {
+    for (let page = 2; page <= totalPages; page += 1) {
       pdf.setPage(page);
       pdf.setFontSize(10);
       pdf.setTextColor(99, 118, 115);
-      pdf.text(String(page - 2), width / 2, height - 28, { align: "center" });
+      pdf.text(String(page - 1), width / 2, height - 28, { align: "center" });
     }
   }
 
@@ -876,7 +902,7 @@
       }
       const worker = window.html2pdf()
         .set({
-          margin: [48, 0, 48, 0],
+          margin: [0, 0, 0, 0],
           filename: `LCEAS-${fileSafeName(meta.name)}-${fileSafeName(meta.studentId)}-${state.sessionNumber || 1}.pdf`,
           image: { type: "jpeg", quality: 0.98 },
           html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },

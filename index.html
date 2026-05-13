@@ -7,11 +7,11 @@
   <meta name="description" content="國立東華大學 Learning Care Early Alert System。">
   <link rel="icon" href="favicon.ico">
   <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="assets/css/styles.css">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260513-report2">
   <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script defer src="assets/js/ndhu-data.js"></script>
-  <script defer src="assets/js/app.js?v=20260513-conn2"></script>
+  <script defer src="assets/js/app.js?v=20260513-logic1"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -38,13 +38,14 @@
             </section>
             <section>
               <h2>二、資料使用目的</h2>
-              <p>您在本服務中輸入的訊息，會用於產生當次 AI 回覆，協助安安理解您的學習需求、問題脈絡與希望獲得的協助；學生基本資料與對話內容也會寫入學校設定的試算表，作為學習關懷紀錄。</p>
+              <p>您在本服務中輸入的訊息，會用於產生當次 AI 回覆，協助安安理解您的學習需求、問題脈絡與希望獲得的協助；學生基本資料、逐筆對話、AI 回覆、情境標籤、關懷層級與系統時間也會寫入學校設定的試算表，作為學習關懷紀錄。</p>
+              <p>本系統紀錄僅供系統管理者及學校授權的學習關懷相關人員，依學習支持、系統維護與必要協助目的查看；不作為正式課業評量、學籍處分或公開展示使用。</p>
               <p>本服務使用資料的目的包括：</p>
               <ol>
                 <li>回應您當次提出的學習問題。</li>
                 <li>協助整理您提供的學習資訊與需求。</li>
                 <li>提供與課業安排、學習策略、時間規劃或修課思考有關的建議。</li>
-                <li>維持短期對話脈絡，使回覆較為連貫。</li>
+                <li>維持短期對話脈絡，使回覆較為連貫；每位學生每日以學號計算最多 20 輪對話。</li>
               </ol>
             </section>
             <section>
@@ -58,7 +59,7 @@
               <p>您勾選同意並開始使用本服務，即表示您已了解並同意：</p>
               <ol>
                 <li>本服務可依據您輸入的訊息產生 AI 回覆。</li>
-                <li>您在本服務中輸入的訊息，將用於當次 AI 回覆、短期對話脈絡與學習關懷紀錄。</li>
+                <li>您在本服務中輸入的訊息與系統產生的標籤，將用於當次 AI 回覆、短期對話脈絡與學習關懷紀錄。</li>
                 <li>安安提供的是學習陪伴與一般性建議，不取代教師、導師、諮商心理師、校內行政單位或其他專業人員的正式協助。</li>
                 <li>若涉及正式課業、行政、心理諮商或緊急協助事項，您應尋求校內外適當專業資源。</li>
               </ol>
