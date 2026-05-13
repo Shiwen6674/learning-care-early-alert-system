@@ -76,7 +76,8 @@ function chatWithOpenAI_(input) {
   const email = normalizeEmail_(context.email || input.email || "");
   const turnLimit = Number(input.dailyTurnLimit || DAILY_TURN_LIMIT) || DAILY_TURN_LIMIT;
   if (!email) throw new Error("缺少學生 Email，無法確認每日對話上限。");
-  const currentDailyCount = countDailyTurns_(email, todayKey_());
+  const dailyState = getDailyTurnState_(email, todayKey_(), input.clientDailyTurnCount);
+  const currentDailyCount = dailyState.dailyTurnCount;
   if (currentDailyCount >= turnLimit) {
     return {
       ok: false,
@@ -142,14 +143,16 @@ function chatWithOpenAI_(input) {
   if (status >= 300) throw new Error(data.error && data.error.message ? data.error.message : "OpenAI 回覆失敗");
   const reply = extractOutputText_(data);
   if (!reply) throw new Error("OpenAI 未回傳可顯示的文字。");
-  const saved = appendConversationTurn_(input, reply, model, email, turnLimit);
+  const saved = tryAppendConversationTurn_(input, reply, model, email, turnLimit, currentDailyCount);
   if (saved && saved.limitReached) return saved;
   return {
     ok: true,
     model: model,
     reply: reply,
     dailyTurnCount: saved.dailyTurnCount,
-    dailyTurnLimit: saved.dailyTurnLimit
+    dailyTurnLimit: saved.dailyTurnLimit,
+    logSaved: saved.logSaved,
+    logError: saved.logError || ""
   };
 }
 
@@ -258,6 +261,38 @@ function appendConversationTurn_(input, reply, model, email, turnLimit) {
     };
   } finally {
     lock.releaseLock();
+  }
+}
+
+function tryAppendConversationTurn_(input, reply, model, email, turnLimit, fallbackCount) {
+  try {
+    const saved = appendConversationTurn_(input, reply, model, email, turnLimit);
+    if (saved && saved.limitReached) return saved;
+    return Object.assign({ logSaved: true }, saved);
+  } catch (err) {
+    return {
+      ok: true,
+      logSaved: false,
+      logError: err && err.message ? err.message : String(err),
+      dailyTurnCount: Math.min((Number(fallbackCount) || 0) + 1, turnLimit),
+      dailyTurnLimit: turnLimit
+    };
+  }
+}
+
+function getDailyTurnState_(email, dateKey, clientDailyTurnCount) {
+  const fallbackCount = Math.max(0, Number(clientDailyTurnCount) || 0);
+  try {
+    return {
+      dailyTurnCount: countDailyTurns_(email, dateKey),
+      source: "sheet"
+    };
+  } catch (err) {
+    return {
+      dailyTurnCount: fallbackCount,
+      source: "client",
+      error: err && err.message ? err.message : String(err)
+    };
   }
 }
 
