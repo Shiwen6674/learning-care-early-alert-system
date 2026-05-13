@@ -9,6 +9,7 @@
   const CURRENT_USER_KEY = "ndhu.learning.anan.currentStudent.v1";
   const DAILY_TURN_KEY = "ndhu.learning.anan.dailyTurns.v1";
   const DAILY_TURN_LIMIT = 25;
+  const LLM_TIMEOUT_MS = 90000;
   const LIMIT_DIALOG_TEXT = "同學您好，您的問題可以進一步洽詢學校導師、行政人員或心理諮商中心，相信可以獲得更好的協助。";
   const DEFAULT_SETTINGS = { gasEndpoint: GAS_ENDPOINT };
   const state = {
@@ -539,7 +540,7 @@
     };
 
     try {
-      const data = await jsonp("llmChat", { payload: JSON.stringify(payload) }, 30000);
+      const data = await jsonp("llmChat", { payload: JSON.stringify(payload) }, LLM_TIMEOUT_MS);
       if (data && data.limitReached) return { limitReached: true };
       if (data && data.ok && safeText(data.reply)) {
         return { text: safeText(data.reply), source: "llm", dailyTurnCount: data.dailyTurnCount };
