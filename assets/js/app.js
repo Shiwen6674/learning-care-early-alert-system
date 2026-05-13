@@ -540,7 +540,7 @@
     };
 
     try {
-      const data = await jsonp("llmChat", { payload: JSON.stringify(payload) }, LLM_TIMEOUT_MS);
+      const data = await requestGas("llmChat", payload, LLM_TIMEOUT_MS);
       if (data && data.limitReached) return { limitReached: true };
       if (data && data.ok && safeText(data.reply)) {
         return { text: safeText(data.reply), source: "llm", dailyTurnCount: data.dailyTurnCount };
@@ -550,9 +550,48 @@
         return { text: `目前沒有收到 AI 回覆。GAS 回傳：${data.error}`, source: "system" };
       }
     } catch (err) {
-      return { text: "目前沒有收到 AI 回覆。請確認 GAS Web App 已部署為可存取，並且 Script Properties 中有 OPENAI_API_KEY 或 API_KEY。", source: "system" };
+      return { text: `目前沒有收到 AI 回覆。連線錯誤：${safeText(err.message, "瀏覽器未完成連線")}`, source: "system" };
     }
     return { text: "目前沒有收到 AI 回覆。", source: "system" };
+  }
+
+  async function requestGas(action, input, timeoutMs = 16000) {
+    const endpoint = state.settings.gasEndpoint;
+    const body = JSON.stringify({ action, input });
+    try {
+      const response = await fetchWithTimeout(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body
+      }, timeoutMs);
+      const text = await response.text();
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return parseGasJson(text);
+    } catch (fetchErr) {
+      try {
+        return await jsonp(action, { payload: JSON.stringify(input) }, timeoutMs);
+      } catch (jsonpErr) {
+        throw new Error(`fetch ${safeText(fetchErr.message, "failed")}；jsonp ${safeText(jsonpErr.message, "failed")}`);
+      }
+    }
+  }
+
+  function fetchWithTimeout(url, options, timeoutMs) {
+    if (!window.AbortController) return fetch(url, options);
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+    return fetch(url, Object.assign({}, options, { signal: controller.signal }))
+      .finally(() => window.clearTimeout(timer));
+  }
+
+  function parseGasJson(text) {
+    try {
+      return JSON.parse(text);
+    } catch (err) {
+      const match = String(text || "").match(/^[^(]+\(([\s\S]*)\);?$/);
+      if (match) return JSON.parse(match[1]);
+      throw new Error("GAS 回傳格式無法解析");
+    }
   }
 
   function jsonp(action, params, timeoutMs = 16000) {
@@ -688,7 +727,7 @@
       clientTime: new Date().toISOString()
     };
     try {
-      const data = await jsonp("reportSummary", { payload: JSON.stringify(payload) }, 30000);
+      const data = await requestGas("reportSummary", payload, LLM_TIMEOUT_MS);
       if (data && data.ok && safeText(data.summary)) {
         state.reportAnalysis = safeText(data.summary);
         return state.reportAnalysis;
