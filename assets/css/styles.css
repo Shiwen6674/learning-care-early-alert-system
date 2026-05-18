@@ -52,6 +52,9 @@ button:disabled {
   z-index: 20;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
   padding: 14px clamp(18px, 4vw, 52px);
   background: rgba(255, 253, 248, .9);
   border-bottom: 1px solid rgba(214, 228, 221, .9);
@@ -75,7 +78,7 @@ button:disabled {
   flex: 0 0 auto;
   background: white;
   border: 1px solid rgba(214, 228, 221, .9);
-  border-radius: 8px;
+  border-radius: 14px;
 }
 
 .brand-mark img {
@@ -97,6 +100,29 @@ button:disabled {
 .brand small {
   margin-top: 2px;
   color: var(--muted);
+}
+
+.language-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  color: var(--teal-dark);
+  font-weight: 800;
+}
+
+.language-picker span {
+  margin: 0;
+  color: var(--teal-dark);
+  font-size: .9rem;
+}
+
+.language-picker select {
+  width: auto;
+  min-height: 42px;
+  padding: 8px 34px 8px 14px;
+  border-radius: 999px;
+  background: rgba(237, 247, 241, .94);
 }
 
 .flow-main {
@@ -129,12 +155,12 @@ button:disabled {
 .chat-card {
   background: rgba(255, 253, 248, .96);
   border: 1px solid rgba(214, 228, 221, .9);
-  border-radius: 8px;
+  border-radius: 18px;
   box-shadow: var(--shadow);
 }
 
 .consent-card {
-  width: min(680px, 100%);
+  width: min(760px, 100%);
   max-height: min(820px, calc(100vh - 56px));
   display: flex;
   flex-direction: column;
@@ -195,6 +221,11 @@ button:disabled {
 
 .consent-body li {
   margin-bottom: 4px;
+}
+
+.consent-en {
+  color: #6a5f52 !important;
+  font-size: .94rem;
 }
 
 .consent-card a {
@@ -299,7 +330,7 @@ button:disabled {
   height: 100%;
   min-height: 260px;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 18px;
   box-shadow: var(--shadow);
 }
 
@@ -307,7 +338,7 @@ button:disabled {
   padding: clamp(18px, 2.4vw, 28px);
   background: rgba(255, 253, 248, .96);
   border: 1px solid rgba(214, 228, 221, .9);
-  border-radius: 8px;
+  border-radius: 18px;
   box-shadow: var(--shadow);
 }
 
@@ -340,13 +371,13 @@ button:disabled {
   padding: 4px;
   background: #edf7f1;
   border: 1px solid rgba(214, 228, 221, .9);
-  border-radius: 8px;
+  border-radius: 14px;
 }
 
 .auth-mode button {
   min-height: 42px;
   border: 0;
-  border-radius: 6px;
+  border-radius: 11px;
   color: var(--muted);
   background: transparent;
 }
@@ -391,7 +422,7 @@ textarea {
   width: 100%;
   border: 1px solid #cbdcd5;
   background: rgba(255, 255, 255, .92);
-  border-radius: 8px;
+  border-radius: 14px;
   color: var(--ink);
   min-height: 50px;
   padding: 12px 14px;
@@ -469,7 +500,7 @@ textarea:focus {
 .message {
   width: fit-content;
   max-width: min(820px, 88%);
-  border-radius: 8px;
+  border-radius: 18px;
   padding: 13px 15px;
   line-height: 1.78;
   box-shadow: 0 8px 20px rgba(35, 49, 58, .06);
@@ -556,7 +587,7 @@ textarea:focus {
 
 .toast {
   padding: 12px 14px;
-  border-radius: 8px;
+  border-radius: 14px;
   background: #23313a;
   color: white;
   box-shadow: var(--shadow);
@@ -566,7 +597,7 @@ textarea:focus {
 .limit-dialog {
   width: min(560px, calc(100vw - 32px));
   border: 1px solid rgba(214, 228, 221, .95);
-  border-radius: 8px;
+  border-radius: 18px;
   padding: 0;
   color: var(--ink);
   background: #fffdf8;
@@ -610,6 +641,11 @@ textarea:focus {
 @media (max-width: 960px) {
   .topbar {
     align-items: flex-start;
+  }
+
+  .language-picker {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .brand small {
@@ -669,7 +705,7 @@ textarea:focus {
   width: 794px;
   color: #203039;
   background: #ffffff;
-  font-family: "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", Arial, sans-serif;
+  font-family: "Noto Sans TC", "Noto Sans", "Microsoft JhengHei", "PingFang TC", "Segoe UI", Arial, sans-serif;
   letter-spacing: 0;
 }
 
@@ -681,11 +717,13 @@ textarea:focus {
 }
 
 .report-page {
-  min-height: 1122px;
-  padding: 78px 70px 74px;
-  background: #ffffff;
+  width: 794px;
+  min-height: 1123px;
+  padding: 74px 68px 82px;
+  background: #fffdfa;
   page-break-after: always;
   break-after: page;
+  overflow: visible;
 }
 
 .report-page:last-child {
@@ -693,107 +731,192 @@ textarea:focus {
   break-after: auto;
 }
 
-.report-analysis-page {
-  min-height: 1122px;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%);
-  page-break-after: always;
-  break-after: page;
-}
-
 .report-cover {
-  position: relative;
   display: grid;
-  align-content: end;
-  overflow: hidden;
+  grid-template-rows: 520px 1fr;
   padding: 0;
-  background: #0f3f3d;
+  background: #fffdfa;
+  overflow: hidden;
 }
 
-.report-cover::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(7, 93, 89, .12) 0%, rgba(9, 42, 44, .82) 64%, rgba(9, 42, 44, .94) 100%);
+.report-cover-photo-wrap {
+  position: relative;
+  height: 520px;
+  overflow: hidden;
+  background: #eef7f1;
 }
 
 .report-cover-photo {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
   object-fit: cover;
+  object-position: center;
 }
 
 .report-cover-content {
-  position: relative;
-  z-index: 1;
   display: grid;
-  gap: 18px;
-  padding: 76px 70px 72px;
-  color: #ffffff;
+  align-content: start;
+  gap: 22px;
+  padding: 46px 62px 58px;
+  color: #203039;
+  background:
+    linear-gradient(135deg, rgba(255, 253, 248, .98), rgba(241, 249, 244, .98));
 }
 
-.report-emblem {
-  width: 92px;
-  height: 92px;
+.report-cover-header {
   display: grid;
-  place-items: center;
-  color: #0f3f3d;
-  background: rgba(255, 255, 255, .92);
-  border-radius: 8px;
+  grid-template-columns: 84px 1fr;
+  gap: 20px;
+  align-items: center;
+}
+
+.report-cover-emblem {
+  width: 84px;
+  height: 84px;
+  padding: 8px;
+  object-fit: contain;
+  background: #ffffff;
+  border: 1px solid #cfe3d9;
+  border-radius: 18px;
+  box-shadow: 0 14px 28px rgba(35, 49, 58, .08);
+}
+
+.report-cover-header p {
+  margin: 0 0 8px;
+  color: #8a5a24;
+  font-size: 13px;
   font-weight: 900;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, .18);
+  letter-spacing: .08em;
 }
 
 .report-cover h1 {
-  margin: 10px 0 0;
-  max-width: 560px;
-  color: #ffffff;
-  font-size: 34px;
-  line-height: 1.35;
+  margin: 0;
+  color: #075d59;
+  font-size: 30px;
+  line-height: 1.32;
+  font-weight: 900;
+}
+
+.report-cover-header span {
+  display: block;
+  margin-top: 8px;
+  color: #60716f;
+  font-size: 14px;
 }
 
 .report-cover h2 {
-  margin: 0;
-  color: #e6f5ef;
-  font-size: 23px;
-  line-height: 1.45;
+  margin: 4px 0 0;
+  color: #1d2f34;
+  font-size: 24px;
+  line-height: 1.4;
 }
 
 .report-page h2 {
   margin: 0 0 26px;
   color: #075d59;
-  font-size: 24px;
+  font-size: 25px;
+  line-height: 1.42;
 }
 
-.report-cover dl {
+.report-profile-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 10px 14px;
-  margin: 22px 0 0;
+  gap: 12px 14px;
+  margin: 2px 0 0;
 }
 
-.report-cover dl div {
+.report-profile-item {
   display: grid;
-  grid-template-columns: 72px 1fr;
+  grid-template-columns: 86px 1fr;
   gap: 12px;
-  padding: 12px 14px;
-  background: rgba(255, 255, 255, .14);
-  border: 1px solid rgba(255, 255, 255, .22);
-  border-radius: 8px;
+  align-items: baseline;
+  padding: 13px 15px;
+  background: rgba(255, 255, 255, .84);
+  border: 1px solid #d7e8df;
+  border-radius: 14px;
 }
 
-.report-cover dt {
-  color: #cfe8df;
+.report-profile-item:last-child {
+  grid-column: 1 / -1;
+}
+
+.report-profile-item dt {
+  color: #61746f;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.report-profile-item dd {
+  margin: 0;
+  color: #203039;
   font-weight: 800;
 }
 
-.report-cover dd {
+.report-cover-back,
+.report-back-cover {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(15, 118, 110, .08), transparent 32%),
+    linear-gradient(180deg, #fffdfa 0%, #f3faf5 100%);
+}
+
+.report-cover-back-inner,
+.report-back-cover-inner {
+  width: 520px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  color: #516560;
+}
+
+.report-cover-back-inner img,
+.report-back-cover-inner img {
+  width: 92px;
+  height: 92px;
+  object-fit: contain;
+  margin-bottom: 22px;
+}
+
+.report-cover-back-inner p,
+.report-back-cover-inner p {
+  margin: 0 0 8px;
+  color: #8a5a24;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.report-cover-back-inner h2,
+.report-back-cover-inner h2 {
   margin: 0;
-  color: #ffffff;
-  font-weight: 700;
+  color: #075d59;
+  font-size: 27px;
+  line-height: 1.38;
+}
+
+.report-cover-back-inner div {
+  width: 180px;
+  height: 1px;
+  margin: 28px 0;
+  background: #cfe3d9;
+}
+
+.report-cover-back-inner span,
+.report-back-cover-inner span {
+  color: #60716f;
+  line-height: 1.8;
+  font-size: 15px;
+}
+
+.report-back-cover-inner {
+  width: 600px;
+  padding: 44px;
+  border: 1px solid #d8e8df;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, .7);
+  box-shadow: 0 22px 56px rgba(35, 49, 58, .08);
 }
 
 .report-section-label {
@@ -803,26 +926,50 @@ textarea:focus {
   color: #8a5a24;
   font-weight: 900;
   font-size: 13px;
-  letter-spacing: 0;
+  letter-spacing: .06em;
+}
+
+.report-analysis-page {
+  background:
+    radial-gradient(circle at 100% 0%, rgba(15, 118, 110, .08), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f7fbf8 100%);
+}
+
+.report-analysis-card {
+  padding: 30px 34px;
+  border: 1px solid #d7e7de;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .86);
+  box-shadow: 0 18px 42px rgba(35, 49, 58, .06);
 }
 
 .report-analysis p {
   margin: 0 0 18px;
-  line-height: 1.95;
+  color: #2e4242;
+  line-height: 2;
   font-size: 16px;
+}
+
+.report-analysis p:last-child {
+  margin-bottom: 0;
 }
 
 .report-dialogue {
   background:
-    linear-gradient(180deg, #ffffff 0%, #fbf8ef 100%);
+    radial-gradient(circle at 0% 0%, rgba(236, 216, 174, .22), transparent 28%),
+    linear-gradient(180deg, #fffdfa 0%, #fbf8ef 100%);
+}
+
+.report-turns {
+  display: grid;
+  gap: 16px;
 }
 
 .report-turn {
-  padding: 16px 18px;
-  margin-bottom: 16px;
+  padding: 17px 19px;
   border: 1px solid #d6e4dd;
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(35, 49, 58, .05);
+  border-radius: 18px;
+  box-shadow: 0 9px 22px rgba(35, 49, 58, .045);
   break-inside: avoid;
   page-break-inside: avoid;
 }
@@ -840,11 +987,29 @@ textarea:focus {
 .report-turn-meta {
   color: #637673;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
   margin-bottom: 8px;
 }
 
 .report-turn-text {
-  line-height: 1.8;
+  color: #243a3b;
+  line-height: 1.85;
   font-size: 15px;
+}
+
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  body {
+    margin: 0;
+    background: #ffffff;
+  }
+
+  .report-rendering {
+    margin: 0;
+    box-shadow: none;
+  }
 }

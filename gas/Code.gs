@@ -24,6 +24,14 @@ const NDHU_COUNSELING_SUPPORT_CONTEXT = [
   "情緒困擾、失戀、霸凌、被霸凌、焦慮、憂鬱、恐慌、睡不著等關鍵字出現時，不要主動說會送出摘要或通報；先溫和詢問：你需要我協助你整理一段可聯繫諮商中心、導師、系辦或校安的文字嗎？",
   "若學生在前後文中明確表示願意、同意、可以、好、OK、拜託、麻煩你等，安安才協助整理一段可傳給相關單位的訊息，並提供聯絡方式。除非系統真的有自動發送功能，否則不要宣稱已代為送出。"
 ].join("\n");
+const LANGUAGE_INSTRUCTIONS = {
+  zh: "繁體中文",
+  en: "English",
+  ja: "日本語",
+  ms: "Bahasa Melayu",
+  th: "ภาษาไทย",
+  id: "Bahasa Indonesia"
+};
 const CONVERSATION_HEADERS = [
   "時間戳記",
   "日期",
@@ -101,6 +109,8 @@ function chatWithOpenAI_(input) {
   if (!apiKey) throw new Error("尚未設定 OPENAI_API_KEY 或 API_KEY。");
   const model = PropertiesService.getScriptProperties().getProperty("OPENAI_MODEL") || "gpt-5-mini";
   const context = input.context || {};
+  const language = normalizeLanguage_(input.language || context.language || "zh");
+  const replyLanguage = languageInstruction_(language);
   const email = normalizeEmail_(context.email || input.email || "");
   const studentKey = studentKey_(context, email);
   const turnLimit = DAILY_TURN_LIMIT;
@@ -136,11 +146,12 @@ function chatWithOpenAI_(input) {
     "避免事項：不要固定套用同一種開場；不要每次都條列；不要像公告、客服、教條、測驗、紀錄員或冷冰冰的助理；不要說「以下是幾個步驟」「我建議你先做清單式評估」「根據你的描述」「我分析」「可能原因有」這類模板句；不要用「我是安安」自我介紹開場；不要用責備、催促、過度正能量或大事化小的語氣。",
     "隱私邊界：不要主動談後台或資料保存。若學生直接詢問資料處理，只用一句話簡短說明對話會依系統設定留存於學校紀錄，用於學習關懷服務。",
     "專業邊界：你提供學習陪伴與溫和引導，不取代校內專業諮詢或正式課業評量；除非學生主動提到急迫危險，不要主動使用驚嚇或危機字眼。",
+    "回覆語言：請使用" + replyLanguage + "回覆。學校單位名稱、官方連結與必要專有名詞可以保留中文，並以" + replyLanguage + "簡短說明。",
     "支援分級：一般課業困難先給學習策略；科系與生涯困惑提供教務課規與課程地圖；經濟壓力提供學務處與起飛等資源；情緒困擾先接住感受並詢問是否需要整理聯繫文字；安全疑慮、肢體衝突或立即危險則優先提醒校安、119、110或身邊可信任的人。",
     "情境一：若學生說對科系沒有興趣、想轉系、不知道讀這個系要做什麼、課程與未來出路不符合期待，請主動觸發教務與生涯探索情境；當輪回覆要自然提供教務處課規查詢與東華課程地圖連結，提醒他對照院基礎、系核心、專業選修、核心能力、課程目標與畢業就業方向；可以建議下載諮詢摘要，帶去找導師、系辦或教務處討論轉系或修課調整的可能性。不要直接替學生做轉系決定。",
     "情境二：若學生提到經濟壓力、學費、生活費、打工太多、清寒、家裡經濟、急難、租金或就學貸款，請主動觸發經濟支持情境；當輪回覆要自然提供起飛獎助、清寒或校內外獎助、弱勢助學、學雜費減免、急難救助、工讀等校內資源與官方連結；請建議他下載TXT或PDF諮詢摘要，帶去聯繫系上、導師或學務處生活輔導組。",
     "情境三：若學生提到情緒不佳、失戀、霸凌、被霸凌、焦慮、憂鬱、恐慌、睡不著、孤單、很痛苦等，請主動觸發情緒支持與轉介詢問情境；先接住感受，不要主動設定送出摘要或通報。先問他是否需要你協助整理一段可聯繫諮商中心、導師、系辦或校安的文字；若學生明確同意，當輪回覆要協助整理聯繫文字，並提供心理諮商輔導中心電話03-890-6896、03-890-6270、Email pcc@gms.ndhu.edu.tw 與中心網站 https://pcc1.ndhu.edu.tw/，若有安全疑慮則也提供校安24小時電話03-890-6995與0937-295995。除非系統真的有發送功能，不要宣稱已代為送出。若學生有立即危險、安全疑慮、打架或肢體衝突，請先關心他是否安全、有沒有人受傷、是否還在現場，再鼓勵立即聯繫校安、119、110或身邊可信任的人。",
-    "語氣：繁體中文、自然、柔和、像可靠的大姐姐、學習導師或初談輔導者。若學生提供稱呼，第一則回覆自然使用一次該稱呼，之後適度使用，不要過度親暱或重複。",
+    "語氣：自然、柔和、像可靠的大姐姐、學習導師或初談輔導者。若學生提供稱呼，第一則回覆自然使用一次該稱呼，之後適度使用，不要過度親暱或重複。",
     "格式：通常 1 到 3 個短段落、220 字以內；只有在學生需要整理多件事時才用短條列。問題要自然，不必每次都用同一種結尾；但若適合延續對話，請留一個容易回答的小問題，不要讓句子中斷。",
     "可使用的東華教務與生涯資料：\n" + NDHU_ACADEMIC_SUPPORT_CONTEXT,
     "可使用的東華經濟支持資料：\n" + NDHU_FINANCIAL_SUPPORT_CONTEXT,
@@ -155,7 +166,7 @@ function chatWithOpenAI_(input) {
     input: [
       {
         role: "system",
-        content: [{ type: "input_text", text: "你只能回覆繁體中文。你是安安，國立東華大學 LCEAS 的溫和學習陪伴與初談輔導角色。回覆要像真人接話：先安慰，再回饋你聽懂的處境，最後才輕輕提出可行建議；避免固定模板、測驗感、客服語氣、公告語氣、生硬條列、分析報告口吻與大事化小。" }]
+        content: [{ type: "input_text", text: "請使用" + replyLanguage + "回覆。你是安安，國立東華大學 LCEAS 的溫和學習陪伴與初談輔導角色。回覆要像真人接話：先安慰，再回饋你聽懂的處境，最後才輕輕提出可行建議；避免固定模板、測驗感、客服語氣、公告語氣、生硬條列、分析報告口吻與大事化小。" }]
       },
       {
         role: "user",
@@ -177,7 +188,7 @@ function chatWithOpenAI_(input) {
   const status = response.getResponseCode();
   const data = JSON.parse(response.getContentText() || "{}");
   if (status >= 300) throw new Error(data.error && data.error.message ? data.error.message : "OpenAI 回覆失敗");
-  let reply = withScenarioFollowup_(extractOutputText_(data), input, history);
+  let reply = withScenarioFollowup_(extractOutputText_(data), input, history, language);
   if (!reply) throw new Error("OpenAI 未回傳可顯示的文字。");
   const assessment = assessConversation_(input, reply, history);
   reply = withDailyLimitReminder_(reply, assessment, currentDailyCount + 1, turnLimit);
@@ -197,8 +208,9 @@ function chatWithOpenAI_(input) {
   };
 }
 
-function withScenarioFollowup_(reply, input, history) {
+function withScenarioFollowup_(reply, input, history, language) {
   const text = String(reply || "").trim();
+  if (normalizeLanguage_(language) !== "zh") return text;
   const latest = String(input.message || "");
   const contextText = [
     latest,
@@ -294,6 +306,8 @@ function summarizeConversation_(input) {
   if (!apiKey) throw new Error("尚未設定 OPENAI_API_KEY 或 API_KEY。");
   const model = PropertiesService.getScriptProperties().getProperty("OPENAI_MODEL") || "gpt-5-mini";
   const context = input.context || {};
+  const language = normalizeLanguage_(input.language || context.language || "zh");
+  const summaryLanguage = languageInstruction_(language);
   const messages = Array.isArray(input.messages) ? input.messages : [];
   const profile = [
     context.nickname ? "姓名或稱呼：" + context.nickname : "",
@@ -306,7 +320,7 @@ function summarizeConversation_(input) {
 
   const prompt = [
     "請為學生整理一段「安安或輔導者直接對學生說」的學習對話綜合分析。",
-    "請使用繁體中文與第二人稱，語氣像專業、溫和、柔軟的初談輔導人員。先安慰與接住感受，再回饋你聽見的處境，最後提出可執行的輔導建議或校內資源。",
+    "請使用" + summaryLanguage + "與第二人稱，語氣像專業、溫和、柔軟的初談輔導人員。先安慰與接住感受，再回饋你聽見的處境，最後提出可執行的輔導建議或校內資源。學校單位名稱、官方連結與必要專有名詞可以保留中文，並用" + summaryLanguage + "簡短說明。",
     "內容可以自然提到學生這次卡住的學習、人際或安全處境，以及他已經嘗試開口求助的線索；不要寫成旁觀者分析，不要使用「我分析」「可以看見」「可能原因有」「主要問題是」「建議如下」等機器句。",
     "不要新增學生沒有提過的重大風險，不要做心理或醫療診斷，不要提教師後台或資料保存；也不要把事情說小，例如不要寫「不用想太多」「只是先做一小步」「其實沒那麼嚴重」。",
     "格式：3 到 5 個短段落，不要條列成制式清單；每段都要像在對學生本人說話，請完整收句，不要讓最後一句中斷。",
@@ -319,7 +333,7 @@ function summarizeConversation_(input) {
     input: [
       {
         role: "system",
-        content: [{ type: "input_text", text: "你是安安的學習陪伴與初談輔導整理者。你要把完整對話整理成給學生本人閱讀的溫和文字：先安慰，再回饋，再提出輔導建議；避免分析報告口吻、模板句、測驗感與大事化小。" }]
+        content: [{ type: "input_text", text: "請使用" + summaryLanguage + "。你是安安的學習陪伴與初談輔導整理者。你要把完整對話整理成給學生本人閱讀的溫和文字：先安慰，再回饋，再提出輔導建議；避免分析報告口吻、模板句、測驗感與大事化小。" }]
       },
       {
         role: "user",
@@ -532,6 +546,15 @@ function normalizeStudentId_(value) {
 
 function normalizeIdentifier_(value) {
   return String(value || "").trim().toUpperCase();
+}
+
+function normalizeLanguage_(value) {
+  const language = String(value || "zh").trim().toLowerCase();
+  return LANGUAGE_INSTRUCTIONS[language] ? language : "zh";
+}
+
+function languageInstruction_(value) {
+  return LANGUAGE_INSTRUCTIONS[normalizeLanguage_(value)] || LANGUAGE_INSTRUCTIONS.zh;
 }
 
 function studentKey_(context, email) {

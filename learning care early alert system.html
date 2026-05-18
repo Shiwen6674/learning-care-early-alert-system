@@ -10,11 +10,11 @@
   <meta name="description" content="國立東華大學 Learning Care Early Alert System。">
   <link rel="icon" href="favicon.ico">
   <link rel="preconnect" href="https://unpkg.com">
-  <link rel="stylesheet" href="assets/css/styles.css?v=20260513-report2">
+  <link rel="stylesheet" href="assets/css/styles.css?v=20260519-report-ui">
   <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script defer src="assets/js/ndhu-data.js"></script>
-  <script defer src="assets/js/app-20260518.js"></script>
+  <script defer src="assets/js/app-20260519.js"></script>
 </head>
 <body>
   <div class="app-shell">
@@ -22,10 +22,21 @@
       <a class="brand" href="#" aria-label="LCEAS">
         <span class="brand-mark"><img src="assets/img/ndhu-emblem.png" alt="國立東華大學校徽"></span>
         <span>
-          <strong>LCEAS 國立東華大學學習關懷預警系統</strong>
-          <small>National Dong Hwa University Learning Care Early Alert System</small>
+          <strong id="brandTitle">LCEAS 國立東華大學學習關懷預警系統</strong>
+          <small id="brandSubtitle">National Dong Hwa University Learning Care Early Alert System</small>
         </span>
       </a>
+      <label class="language-picker" for="languageSelect">
+        <span id="languageLabel">語言</span>
+        <select id="languageSelect" aria-label="Language">
+          <option value="zh">繁體中文</option>
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+          <option value="ms">Bahasa Melayu</option>
+          <option value="th">ไทย</option>
+          <option value="id">Bahasa Indonesia</option>
+        </select>
+      </label>
     </header>
 
     <main class="flow-main">
@@ -34,10 +45,13 @@
           <h1 id="usageConsentTitle">使用者知情同意說明</h1>
           <div class="consent-body">
             <p>歡迎使用「安安」AI 學習陪伴服務。開始使用前，請先閱讀以下說明。當您勾選同意並開始使用本服務，即表示您已了解本服務的角色、資料使用目的與使用限制，並同意以下內容。</p>
+            <p lang="en" class="consent-en">Welcome to Anan, the AI learning companion service. Before using this service, please read the following information. By checking the consent box and starting the service, you acknowledge that you understand the role of this service, the purpose of data use, and its limitations.</p>
             <section>
               <h2>一、安安的服務角色</h2>
               <p>（一）安安是國立東華大學學習關懷預警系統中的 AI 學習陪伴，主要協助學生進行學習相關的整理與規劃，例如：課業重點整理、作業與報告準備、考試準備、跨域修課思考、時間管理、學習策略建議，以及自我學習狀況的初步梳理等。</p>
               <p>（二）安安的目的是提供溫和引導與具體建議，協助您更清楚地面對學習問題，並思考可行的下一步行動。</p>
+              <p lang="en" class="consent-en">(1) Anan is the AI learning companion in the National Dong Hwa University Learning Care Early Alert System. It helps students organize and plan learning-related matters such as course review, assignments and reports, exam preparation, interdisciplinary learning, time management, learning strategies, and initial reflection on learning conditions.</p>
+              <p lang="en" class="consent-en">(2) Anan provides gentle guidance and concrete suggestions to help you understand your learning concerns more clearly and consider feasible next steps.</p>
             </section>
             <section>
               <h2>二、資料使用目的</h2>
@@ -50,12 +64,18 @@
                 <li>提供與課業安排、學習策略、時間規劃或修課思考有關的建議。</li>
                 <li>維持短期對話脈絡，使回覆較為連貫；每位學生每日以學號計算最多 20 輪對話。</li>
               </ol>
+              <p lang="en" class="consent-en">Messages you enter are used to generate the current AI response and help Anan understand your learning needs and context. Basic student information, each student message, AI responses, scenario tags, care level, and system time may also be written to the school-designated spreadsheet as a learning care record.</p>
+              <p lang="en" class="consent-en">These records are available only to system administrators and school-authorized learning care personnel for learning support, system maintenance, and necessary assistance. They are not used as formal academic evaluation, student-status decisions, or public display.</p>
+              <p lang="en" class="consent-en">The purposes of data use include: responding to your current learning question; organizing the learning information and needs you provide; offering suggestions about coursework, learning strategies, time planning, or course decisions; and maintaining short-term context so responses are more coherent. Each student may have up to 20 conversation turns per day based on student ID.</p>
             </section>
             <section>
               <h2>三、使用提醒</h2>
               <p>（一）安安提供的是學習陪伴與一般性建議，並非正式課業評量、學籍判定、行政決定或心理諮商診斷的依據。</p>
               <p>（二）若涉及成績、選課、畢業門檻、學籍、請假、休退學、獎助學金或其他正式行政事項，請以課程教師、系所辦公室、學校相關單位或正式公告為準。</p>
               <p>（三）若您的情況涉及急迫危機、強烈情緒困擾、自傷或傷人風險，或需要真人即時協助，請立即聯絡導師、系所辦公室、學務處、諮商輔導中心、校安中心或當地緊急求助管道。安安無法取代即時危機處理或專業諮商服務。</p>
+              <p lang="en" class="consent-en">(1) Anan provides learning companionship and general suggestions. It is not a basis for formal academic assessment, student-status decisions, administrative decisions, or psychological counseling diagnosis.</p>
+              <p lang="en" class="consent-en">(2) For grades, course selection, graduation requirements, student status, leave, withdrawal or suspension, scholarships, grants, or other official administrative matters, please refer to course instructors, department offices, relevant school units, or official announcements.</p>
+              <p lang="en" class="consent-en">(3) If your situation involves urgent crisis, intense emotional distress, risk of self-harm or harm to others, or the need for immediate human assistance, please contact your advisor, department office, Office of Student Affairs, Counseling Center, Campus Security Center, or local emergency support. Anan cannot replace immediate crisis response or professional counseling services.</p>
             </section>
             <section>
               <h2>四、您的同意</h2>
@@ -66,6 +86,7 @@
                 <li>安安提供的是學習陪伴與一般性建議，不取代教師、導師、諮商心理師、校內行政單位或其他專業人員的正式協助。</li>
                 <li>若涉及正式課業、行政、心理諮商或緊急協助事項，您應尋求校內外適當專業資源。</li>
               </ol>
+              <p lang="en" class="consent-en">By checking consent and starting this service, you agree that the service may generate AI responses based on your input; your messages and system-generated tags may be used for the current AI response, short-term conversation context, and learning care records; Anan does not replace formal assistance from teachers, advisors, counseling psychologists, school administrative units, or other professionals; and you should seek appropriate professional resources for formal academic, administrative, counseling, or emergency matters.</p>
             </section>
           </div>
           <label class="consent-line">
@@ -82,7 +103,7 @@
             <img src="assets/img/ndhu-campus-lake.jpg" alt="國立東華大學校園湖畔">
             <div class="intro-copy">
               <h1 id="entryTitle">國立東華大學學習關懷預警系統</h1>
-              <p>安安是國立東華大學學習關懷預警系統的 AI 學習夥伴。你可以把課程進度、作業、考試準備、跨域修課或時間安排等學習上的困難或卡點，用自己的話說出來；安安會先試圖理解情況，再協助你釐清與改善你遇到的學習問題。</p>
+              <p id="entryIntro">安安是國立東華大學學習關懷預警系統的 AI 學習夥伴。你可以把課程進度、作業、考試準備、跨域修課或時間安排等學習上的困難或卡點，用自己的話說出來；安安會先試圖理解情況，再協助你釐清與改善你遇到的學習問題。</p>
             </div>
           </section>
 
