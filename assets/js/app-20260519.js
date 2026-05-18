@@ -45,7 +45,8 @@
     ja: { html: "ja", locale: "ja-JP", speech: "ja-JP" },
     ms: { html: "ms", locale: "ms-MY", speech: "ms-MY" },
     th: { html: "th", locale: "th-TH", speech: "th-TH" },
-    id: { html: "id", locale: "id-ID", speech: "id-ID" }
+    id: { html: "id", locale: "id-ID", speech: "id-ID" },
+    vi: { html: "vi", locale: "vi-VN", speech: "vi-VN" }
   };
 
   const I18N = {
@@ -518,6 +519,81 @@
       txtTranscriptTitle: "Detail Percakapan"
     }
   };
+
+  I18N.vi = Object.assign({}, I18N.en, {
+    brandTitle: "LCEAS Hệ thống cảnh báo sớm và chăm sóc học tập Đại học Quốc lập Đông Hoa",
+    languageLabel: "Ngôn ngữ",
+    entryTitle: "Hệ thống cảnh báo sớm và chăm sóc học tập Đại học Quốc lập Đông Hoa",
+    entryIntro: "Anan là người bạn học tập AI trong Hệ thống cảnh báo sớm và chăm sóc học tập của Đại học Quốc lập Đông Hoa. Bạn có thể kể bằng lời của mình về tiến độ môn học, bài tập, chuẩn bị thi, học liên ngành, sắp xếp thời gian hoặc những điểm đang gặp khó khăn; Anan sẽ trước hết hiểu tình huống của bạn, rồi hỗ trợ làm rõ và cải thiện vấn đề học tập bạn đang gặp.",
+    register: "Đăng ký",
+    login: "Đăng nhập",
+    authTitleRegister: "Đăng ký sinh viên",
+    authTitleLogin: "Đăng nhập sinh viên",
+    authHintRegister: "Lần đầu sử dụng, hãy tạo tài khoản sinh viên. Anan dùng thông tin này để hiểu học viện, khoa và bối cảnh học tập của bạn. Lần sau vui lòng dùng cùng email để đăng nhập.",
+    authHintLogin: "Vui lòng đăng nhập bằng email và mật khẩu đã dùng khi đăng ký.",
+    nickname: "Tên hoặc cách xưng hô",
+    password: "Mật khẩu",
+    confirmPassword: "Xác nhận mật khẩu",
+    grade: "Năm học",
+    studentId: "Mã số sinh viên",
+    college: "Học viện",
+    department: "Khoa",
+    nicknamePlaceholder: "Bạn muốn Anan gọi bạn là gì?",
+    emailPlaceholder: "Nhập email trường hoặc email thường dùng",
+    passwordPlaceholder: "Ít nhất 8 ký tự",
+    confirmPasswordPlaceholder: "Nhập lại mật khẩu",
+    studentIdPlaceholder: "Nhập mã số sinh viên",
+    submitRegister: "Đăng ký và trò chuyện với Anan",
+    submitLogin: "Đăng nhập và trò chuyện với Anan",
+    backToEntry: "Quay lại trang đăng nhập",
+    clearChat: "Xóa đối thoại",
+    downloadTxt: "Tải TXT",
+    downloadPdf: "Tải PDF",
+    chatInput: "{name}, nhập điều bạn muốn nói với Anan...",
+    voiceInput: "Nhập bằng giọng nói",
+    stopVoiceInput: "Dừng nhập giọng nói",
+    send: "Gửi",
+    noConversation: "Chưa có cuộc trò chuyện để tải xuống.",
+    thinking: "Đang suy nghĩ...",
+    pdfPreparing: "Đang chuẩn bị PDF.",
+    popupBlocked: "Trình duyệt đã chặn cửa sổ PDF. Vui lòng cho phép cửa sổ bật lên rồi thử lại.",
+    enterEmail: "Vui lòng nhập email trước.",
+    passwordShort: "Mật khẩu cần ít nhất 8 ký tự.",
+    emailNotFound: "Email này chưa được đăng ký. Vui lòng tạo tài khoản sinh viên trước.",
+    wrongPassword: "Mật khẩu không đúng, vui lòng thử lại.",
+    passwordMismatch: "Hai lần nhập mật khẩu không khớp.",
+    emailRegistered: "Email này đã được đăng ký, vui lòng đăng nhập.",
+    loginSuccess: "Bạn đã đăng nhập và có thể bắt đầu trò chuyện với Anan.",
+    registerSuccess: "Đăng ký hoàn tất. Bạn có thể bắt đầu trò chuyện với Anan.",
+    loginFirst: "Vui lòng đăng nhập hoặc đăng ký bằng email trước.",
+    speechUnsupported: "Trình duyệt này hiện chưa hỗ trợ nhập bằng giọng nói.",
+    speechUnavailable: "Tạm thời không thể sử dụng nhập bằng giọng nói.",
+    speechPreparing: "Đang chuẩn bị nhập bằng giọng nói.",
+    limitDialog: "Vấn đề của bạn có thể được hỗ trợ tốt hơn khi trao đổi thêm với cố vấn học tập, văn phòng khoa, đơn vị sinh viên hoặc trung tâm tư vấn.",
+    limitOk: "Tôi hiểu",
+    unknown: "Chưa cung cấp",
+    you: "Bạn",
+    student: "Sinh viên",
+    reportSystemTitle: "Hệ thống cảnh báo sớm và chăm sóc học tập Đại học Quốc lập Đông Hoa",
+    reportSystemSubtitle: "National Dong Hwa University Learning Care Early Alert System",
+    reportSession: (count) => `Bản ghi đối thoại lần ${count}`,
+    reportDate: "Ngày",
+    reportName: "Tên",
+    reportStudentId: "Mã số sinh viên",
+    reportGrade: "Năm học",
+    reportCollege: "Học viện",
+    reportDepartment: "Khoa",
+    reportGenerated: "Tạo lúc",
+    reportCoverBackTitle: "Bản ghi chăm sóc học tập",
+    reportCoverBackText: "Trang này được để trống làm trang lót bìa khi in và đóng quyển.",
+    reportAnalysisLabel: "Learning Care Summary",
+    reportAnalysisTitle: "Phân tích tổng hợp",
+    reportTranscriptLabel: "Conversation Transcript",
+    reportTranscriptTitle: "Nội dung đối thoại chi tiết",
+    reportBackCoverText: "Cảm ơn bạn đã nói ra khó khăn trong học tập. Mong rằng bản ghi này giúp bạn nhìn rõ bước tiếp theo hơn.",
+    txtSummaryTitle: "Phân tích tổng hợp",
+    txtTranscriptTitle: "Nội dung đối thoại chi tiết"
+  });
 
   function escapeHtml(value) {
     return String(value === undefined || value === null ? "" : value)
@@ -1478,15 +1554,7 @@
             <dl class="report-profile-grid">${reportMetaRows(meta)}</dl>
           </div>
         </section>
-        <section class="report-page report-cover-back">
-          <div class="report-cover-back-inner">
-            <img src="assets/img/ndhu-emblem.png" alt="NDHU emblem">
-            <p>LCEAS</p>
-            <h2>${escapeHtml(tx("reportCoverBackTitle"))}</h2>
-            <div></div>
-            <span>${escapeHtml(tx("reportCoverBackText"))}</span>
-          </div>
-        </section>
+        <section class="report-page report-cover-back" aria-hidden="true"></section>
         <section class="report-page report-analysis-page">
           <div class="report-section-label">${escapeHtml(tx("reportAnalysisLabel"))}</div>
           <h2>${escapeHtml(tx("reportAnalysisTitle"))}</h2>

@@ -30,7 +30,8 @@ const LANGUAGE_INSTRUCTIONS = {
   ja: "日本語",
   ms: "Bahasa Melayu",
   th: "ภาษาไทย",
-  id: "Bahasa Indonesia"
+  id: "Bahasa Indonesia",
+  vi: "Tiếng Việt"
 };
 const CONVERSATION_HEADERS = [
   "時間戳記",

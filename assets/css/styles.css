@@ -711,19 +711,21 @@ textarea:focus {
 
 .report-rendering {
   position: static;
-  margin: 32px auto;
+  margin: 0 auto;
   pointer-events: none;
   box-shadow: 0 20px 80px rgba(35, 49, 58, .18);
 }
 
 .report-page {
   width: 794px;
-  min-height: 1123px;
+  height: 1122px;
+  min-height: 1122px;
+  max-height: 1122px;
   padding: 74px 68px 82px;
   background: #fffdfa;
   page-break-after: always;
   break-after: page;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .report-page:last-child {
@@ -733,7 +735,7 @@ textarea:focus {
 
 .report-cover {
   display: grid;
-  grid-template-rows: 520px 1fr;
+  grid-template-rows: 512px 1fr;
   padding: 0;
   background: #fffdfa;
   overflow: hidden;
@@ -741,7 +743,7 @@ textarea:focus {
 
 .report-cover-photo-wrap {
   position: relative;
-  height: 520px;
+  height: 512px;
   overflow: hidden;
   background: #eef7f1;
 }
@@ -751,7 +753,7 @@ textarea:focus {
   height: 100%;
   display: block;
   object-fit: cover;
-  object-position: center;
+  object-position: center top;
 }
 
 .report-cover-content {
@@ -861,6 +863,14 @@ textarea:focus {
   background:
     radial-gradient(circle at 18% 18%, rgba(15, 118, 110, .08), transparent 32%),
     linear-gradient(180deg, #fffdfa 0%, #f3faf5 100%);
+}
+
+.report-cover-back {
+  background: #fffdfa;
+}
+
+.report-cover-back-inner {
+  display: none;
 }
 
 .report-cover-back-inner,
