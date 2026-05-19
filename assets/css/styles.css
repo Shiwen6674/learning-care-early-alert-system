@@ -713,7 +713,7 @@ textarea:focus {
   position: static;
   margin: 0 auto;
   pointer-events: none;
-  transform: translateX(-8px);
+  transform: translateX(-11px);
   transform-origin: top left;
   box-shadow: 0 20px 80px rgba(35, 49, 58, .18);
 }
@@ -1031,7 +1031,7 @@ textarea:focus {
 
   .report-rendering {
     margin: 0;
-    transform: translateX(-8px);
+    transform: translateX(-11px);
     box-shadow: none;
   }
 }
