@@ -713,6 +713,8 @@ textarea:focus {
   position: static;
   margin: 0 auto;
   pointer-events: none;
+  transform: translateX(-8px);
+  transform-origin: top left;
   box-shadow: 0 20px 80px rgba(35, 49, 58, .18);
 }
 
@@ -809,9 +811,12 @@ textarea:focus {
 
 .report-cover h2 {
   margin: 4px 0 0;
+  justify-self: center;
+  width: 100%;
   color: #1d2f34;
   font-size: 24px;
   line-height: 1.4;
+  text-align: center;
 }
 
 .report-page h2 {
@@ -896,6 +901,12 @@ textarea:focus {
   color: #8a5a24;
   font-weight: 900;
   letter-spacing: .08em;
+}
+
+.report-back-cover-inner p span {
+  display: block;
+  text-align: center;
+  line-height: 1.65;
 }
 
 .report-cover-back-inner h2,
@@ -1020,6 +1031,7 @@ textarea:focus {
 
   .report-rendering {
     margin: 0;
+    transform: translateX(-8px);
     box-shadow: none;
   }
 }

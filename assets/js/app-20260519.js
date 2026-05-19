@@ -109,7 +109,7 @@
       anan: "安安",
       reportSystemTitle: "國立東華大學學習關懷預警系統",
       reportSystemSubtitle: "National Dong Hwa University Learning Care Early Alert System",
-      reportSession: (count) => `第 ${count} 次對話紀錄`,
+      reportSession: (count) => `第${count}次對話紀錄`,
       reportDate: "日期",
       reportName: "姓名",
       reportEmail: "Email",
@@ -124,7 +124,7 @@
       reportAnalysisTitle: "綜合分析",
       reportTranscriptLabel: "Conversation Transcript",
       reportTranscriptTitle: "詳細對話過程",
-      reportBackCoverText: "感謝你願意把學習困難說出來。願這份紀錄陪你把下一步看得更清楚。",
+      reportBackCoverText: "謝謝你願意與安安分享心裡的話，讓我陪你一起往前走！",
       txtSummaryTitle: "綜合分析",
       txtTranscriptTitle: "詳細對話過程"
     },
@@ -1473,6 +1473,14 @@
       .join("");
   }
 
+  function backCoverSubtitleHtml() {
+    const subtitle = tx("reportSystemSubtitle");
+    if (/National Dong Hwa University Learning Care Early Alert System/i.test(subtitle)) {
+      return "<span>National Dong Hwa University</span><span>Learning Care Early Alert System</span>";
+    }
+    return escapeHtml(subtitle);
+  }
+
   function reportTurnHtml(message) {
     const speaker = message.role === "user" ? (state.profile.nickname || tx("you")) : tx("anan");
     const time = new Date(message.timestamp).toLocaleString(currentLocale());
@@ -1567,7 +1575,7 @@
           <div class="report-back-cover-inner">
             <img src="assets/img/ndhu-emblem.png" alt="NDHU emblem">
             <h2>${escapeHtml(tx("reportSystemTitle"))}</h2>
-            <p>${escapeHtml(tx("reportSystemSubtitle"))}</p>
+            <p>${backCoverSubtitleHtml()}</p>
             <span>${escapeHtml(tx("reportBackCoverText"))}</span>
           </div>
         </section>
