@@ -11,6 +11,8 @@
   const DAILY_TURN_KEY = "ndhu.learning.anan.dailyTurns.v1";
   const DAILY_TURN_LIMIT = 20;
   const LLM_TIMEOUT_MS = 90000;
+  const IDLE_PROMPT_DELAYS = [180000, 60000, 60000];
+  const IDLE_PROMPT_KEYS = ["idlePromptFirst", "idlePromptSecond", "idlePromptFinal"];
   const LIMIT_DIALOG_TEXT = "今天的對話次數已經用完了。若你現在很需要有人陪你一起處理，請先找導師、系辦、學務處或心理諮商輔導中心；若有立即安全疑慮，請直接聯繫校安或緊急求助。";
   const DEFAULT_SETTINGS = { gasEndpoint: GAS_ENDPOINT };
   const state = {
@@ -35,6 +37,7 @@
   let speechRecognition = null;
   let isListening = false;
   let nextInputMethod = "text";
+  let idlePromptTimer = 0;
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
@@ -98,6 +101,11 @@
       loginSuccess: "已登入，可以開始和安安聊聊。",
       registerSuccess: "註冊完成，可以開始和安安聊聊。",
       loginFirst: "請先用 email 登入或註冊。",
+      firstGreeting: (name) => `Hi，${name}你好，我是安安，今天有什麼學習困難或是心裡話想跟我聊聊呢？`,
+      returningGreeting: (name, topic) => `Hi，${name}你好，我是安安，很開心你今天再回來找我，有什麼學習困難或是心裡話想跟我聊聊？或是${topic ? `上次「${topic}」` : "上次聊到"}的事情也可以哦～！`,
+      idlePromptFirst: "你還好嗎？ 有什麼話想繼續跟我分享呢？",
+      idlePromptSecond: "看你沒回應，有什麼是安安可以幫你的呢？",
+      idlePromptFinal: "你可能在忙碌中，我就先不打擾你。如果有需要安安，歡迎隨時回來找我唷！",
       speechUnsupported: "這個瀏覽器目前不支援語音輸入。",
       speechUnavailable: "語音輸入暫時無法使用。",
       speechPreparing: "語音輸入正在準備中。",
@@ -176,6 +184,11 @@
       loginSuccess: "You are logged in and can start chatting with Anan.",
       registerSuccess: "Registration complete. You can start chatting with Anan.",
       loginFirst: "Please log in or register with email first.",
+      firstGreeting: (name) => `Hi ${name}, I am Anan. What learning difficulty or honest thought would you like to talk about today?`,
+      returningGreeting: (name, topic) => `Hi ${name}, I am Anan. I am glad you came back today. What learning difficulty or honest thought would you like to talk about? We can also continue from ${topic ? `what you mentioned last time: "${topic}"` : "what we talked about last time"}.`,
+      idlePromptFirst: "Are you doing okay? Is there anything you would like to keep sharing with me?",
+      idlePromptSecond: "I have not heard from you yet. Is there anything Anan can help with?",
+      idlePromptFinal: "You may be busy, so I will give you some space. Whenever you need Anan, you are welcome to come back.",
       speechUnsupported: "This browser does not support voice input yet.",
       speechUnavailable: "Voice input is temporarily unavailable.",
       speechPreparing: "Voice input is getting ready.",
@@ -254,6 +267,11 @@
       loginSuccess: "ログインしました。安安と話せます。",
       registerSuccess: "登録が完了しました。安安と話せます。",
       loginFirst: "先にメールでログインまたは登録してください。",
+      firstGreeting: (name) => `Hi、${name}さん、安安です。今日は学習で困っていることや、心の中で話したいことがありますか？`,
+      returningGreeting: (name, topic) => `Hi、${name}さん、安安です。今日また来てくれてうれしいです。学習の困りごとでも、心の中のことでも話して大丈夫です。${topic ? `前回の「${topic}」` : "前回話したこと"}の続きでもいいですよ～！`,
+      idlePromptFirst: "大丈夫ですか？ 続けて話したいことがあれば、聞かせてください。",
+      idlePromptSecond: "まだ返事がないみたいです。安安に手伝えることはありますか？",
+      idlePromptFinal: "今は忙しいのかもしれませんね。いったん静かにしています。必要になったら、いつでも戻ってきてください。",
       speechUnsupported: "このブラウザは音声入力に対応していません。",
       speechUnavailable: "音声入力は一時的に利用できません。",
       speechPreparing: "音声入力を準備しています。",
@@ -332,6 +350,11 @@
       loginSuccess: "Anda telah log masuk dan boleh mula berbual dengan Anan.",
       registerSuccess: "Pendaftaran selesai. Anda boleh mula berbual dengan Anan.",
       loginFirst: "Sila log masuk atau daftar dengan emel dahulu.",
+      firstGreeting: (name) => `Hi ${name}, saya Anan. Hari ini ada kesukaran belajar atau perkara di hati yang ingin anda bualkan?`,
+      returningGreeting: (name, topic) => `Hi ${name}, saya Anan. Gembira anda kembali hari ini. Ada kesukaran belajar atau perkara di hati yang ingin dibualkan? Kita juga boleh sambung tentang ${topic ? `"${topic}" dari kali lepas` : "perkara yang dibualkan kali lepas"}.`,
+      idlePromptFirst: "Anda okey? Ada apa-apa yang ingin terus dikongsi dengan saya?",
+      idlePromptSecond: "Saya belum nampak balasan anda. Ada apa-apa yang Anan boleh bantu?",
+      idlePromptFinal: "Mungkin anda sedang sibuk, jadi saya berhenti mengganggu dahulu. Jika perlukan Anan, anda boleh kembali bila-bila masa.",
       speechUnsupported: "Pelayar ini belum menyokong input suara.",
       speechUnavailable: "Input suara tidak tersedia buat sementara.",
       speechPreparing: "Input suara sedang disediakan.",
@@ -410,6 +433,11 @@
       loginSuccess: "เข้าสู่ระบบแล้ว คุณสามารถเริ่มคุยกับ Anan ได้",
       registerSuccess: "สมัครเสร็จแล้ว คุณสามารถเริ่มคุยกับ Anan ได้",
       loginFirst: "กรุณาเข้าสู่ระบบหรือสมัครด้วยอีเมลก่อน",
+      firstGreeting: (name) => `Hi ${name} ฉันคือ Anan วันนี้มีเรื่องเรียนติดขัด หรือเรื่องในใจที่อยากคุยไหม?`,
+      returningGreeting: (name, topic) => `Hi ${name} ฉันคือ Anan ดีใจที่วันนี้กลับมาหากันอีก มีเรื่องเรียนติดขัดหรือเรื่องในใจที่อยากคุยไหม? หรือจะคุยต่อจาก${topic ? `เรื่อง "${topic}" ครั้งก่อน` : "เรื่องครั้งก่อน"}ก็ได้นะ～`,
+      idlePromptFirst: "คุณยังโอเคไหม? มีอะไรอยากเล่าต่อให้ฉันฟังไหม?",
+      idlePromptSecond: "เห็นว่ายังไม่ได้ตอบ มีอะไรที่ Anan ช่วยได้ไหม?",
+      idlePromptFinal: "คุณอาจกำลังยุ่งอยู่ ฉันจะไม่รบกวนก่อนนะ ถ้าต้องการ Anan กลับมาได้เสมอ",
       speechUnsupported: "เบราว์เซอร์นี้ยังไม่รองรับการป้อนด้วยเสียง",
       speechUnavailable: "การป้อนด้วยเสียงยังใช้ไม่ได้ชั่วคราว",
       speechPreparing: "กำลังเตรียมการป้อนด้วยเสียง",
@@ -488,6 +516,11 @@
       loginSuccess: "Anda sudah masuk dan dapat mulai berbicara dengan Anan.",
       registerSuccess: "Pendaftaran selesai. Anda dapat mulai berbicara dengan Anan.",
       loginFirst: "Silakan masuk atau daftar dengan email terlebih dahulu.",
+      firstGreeting: (name) => `Hi ${name}, saya Anan. Hari ini ada kesulitan belajar atau isi hati yang ingin kamu ceritakan?`,
+      returningGreeting: (name, topic) => `Hi ${name}, saya Anan. Senang kamu kembali hari ini. Ada kesulitan belajar atau isi hati yang ingin kamu ceritakan? Kita juga bisa lanjut dari ${topic ? `hal "${topic}" yang kamu ceritakan sebelumnya` : "obrolan sebelumnya"}.`,
+      idlePromptFirst: "Kamu baik-baik saja? Ada hal yang ingin kamu lanjutkan untuk dibagikan?",
+      idlePromptSecond: "Aku belum melihat balasanmu. Ada yang bisa Anan bantu?",
+      idlePromptFinal: "Mungkin kamu sedang sibuk, jadi aku tidak mengganggu dulu. Kalau butuh Anan, kamu bisa kembali kapan saja.",
       speechUnsupported: "Browser ini belum mendukung input suara.",
       speechUnavailable: "Input suara sementara tidak tersedia.",
       speechPreparing: "Input suara sedang disiapkan.",
@@ -566,6 +599,11 @@
     loginSuccess: "Bạn đã đăng nhập và có thể bắt đầu trò chuyện với Anan.",
     registerSuccess: "Đăng ký hoàn tất. Bạn có thể bắt đầu trò chuyện với Anan.",
     loginFirst: "Vui lòng đăng nhập hoặc đăng ký bằng email trước.",
+    firstGreeting: (name) => `Hi ${name}, mình là Anan. Hôm nay bạn có khó khăn học tập hoặc điều gì trong lòng muốn trò chuyện không?`,
+    returningGreeting: (name, topic) => `Hi ${name}, mình là Anan. Rất vui vì hôm nay bạn quay lại. Bạn muốn nói về khó khăn học tập hay điều gì trong lòng? Mình cũng có thể cùng bạn tiếp tục chuyện ${topic ? `"${topic}" lần trước` : "lần trước"} nhé～`,
+    idlePromptFirst: "Bạn vẫn ổn chứ? Có điều gì muốn tiếp tục chia sẻ với mình không?",
+    idlePromptSecond: "Mình chưa thấy bạn trả lời. Có điều gì Anan có thể giúp không?",
+    idlePromptFinal: "Có thể bạn đang bận, nên mình sẽ tạm không làm phiền. Khi nào cần Anan, bạn cứ quay lại nhé!",
     speechUnsupported: "Trình duyệt này hiện chưa hỗ trợ nhập bằng giọng nói.",
     speechUnavailable: "Tạm thời không thể sử dụng nhập bằng giọng nói.",
     speechPreparing: "Đang chuẩn bị nhập bằng giọng nói.",
@@ -824,10 +862,38 @@
     window.setTimeout(() => toast.remove(), 3600);
   }
 
+  function chatIsVisible() {
+    const chatView = $("#chatView");
+    return !!(chatView && !chatView.classList.contains("hidden"));
+  }
+
+  function clearIdlePromptTimer() {
+    if (!idlePromptTimer) return;
+    window.clearTimeout(idlePromptTimer);
+    idlePromptTimer = 0;
+  }
+
+  function scheduleIdlePrompt(stage = 0) {
+    clearIdlePromptTimer();
+    if (!chatIsVisible() || stage >= IDLE_PROMPT_DELAYS.length) return;
+    idlePromptTimer = window.setTimeout(() => {
+      idlePromptTimer = 0;
+      if (!chatIsVisible()) return;
+      addMessage("agent", tx(IDLE_PROMPT_KEYS[stage]));
+      scheduleIdlePrompt(stage + 1);
+    }, IDLE_PROMPT_DELAYS[stage]);
+  }
+
+  function restartIdlePrompts() {
+    clearIdlePromptTimer();
+    if (chatIsVisible()) scheduleIdlePrompt(0);
+  }
+
   function showView(viewId) {
     document.querySelectorAll(".view").forEach((view) => {
       view.classList.toggle("hidden", view.id !== viewId);
     });
+    if (viewId !== "chatView") clearIdlePromptTimer();
     if (viewId === "entryView") {
       window.setTimeout(() => {
         const firstInput = state.authMode === "login" ? $("#emailInput") : $("#nicknameInput");
@@ -981,7 +1047,41 @@
     if (submit) submit.textContent = isRegister ? tx("submitRegister") : tx("submitLogin");
   }
 
-  function prepareChatSession() {
+  async function loadSessionContext() {
+    try {
+      const data = await requestGas("sessionContext", {
+        context: state.profile,
+        sessionId: state.sessionId,
+        language: state.language
+      }, 12000);
+      if (data && data.ok) return data;
+    } catch (err) {
+      // If the session lookup is unavailable, the chat can still start locally.
+    }
+    return {
+      ok: true,
+      sessionNumber: nextSessionNumber(),
+      hasPrevious: false,
+      previousTopic: ""
+    };
+  }
+
+  function openingGreeting(sessionContext) {
+    const name = state.profile.nickname || tx("student");
+    const sessionNumber = Number(sessionContext && sessionContext.sessionNumber) || 1;
+    const previousTopic = safeText(sessionContext && sessionContext.previousTopic);
+    if (sessionNumber > 1 || (sessionContext && sessionContext.hasPrevious)) {
+      return txValue("returningGreeting", name, previousTopic);
+    }
+    return txValue("firstGreeting", name);
+  }
+
+  async function prepareChatSession() {
+    clearIdlePromptTimer();
+    const chatInput = $("#chatInput");
+    const sendButton = $("#chatForm button[type='submit']");
+    if (chatInput) chatInput.disabled = true;
+    if (sendButton) sendButton.disabled = true;
     state.sessionNumber = 0;
     state.sessionId = uid("session");
     state.messages = [];
@@ -990,6 +1090,15 @@
     $("#chatInput").placeholder = namedText(tx("chatInput"), state.profile.nickname || tx("student"));
     updateExportState();
     showView("chatView");
+    const sessionContext = await loadSessionContext();
+    state.sessionNumber = Math.max(1, Number(sessionContext.sessionNumber) || 1);
+    addMessage("agent", openingGreeting(sessionContext));
+    if (chatInput) {
+      chatInput.disabled = false;
+      chatInput.focus();
+    }
+    if (sendButton) sendButton.disabled = false;
+    restartIdlePrompts();
   }
 
   async function handleAuthSubmit(event) {
@@ -1025,7 +1134,7 @@
       saveStudents();
       setCurrentStudent(student);
       $("#passwordInput").value = "";
-      prepareChatSession();
+      await prepareChatSession();
       showToast(tx("loginSuccess"));
       return;
     }
@@ -1062,7 +1171,7 @@
     setCurrentStudent(student);
     $("#passwordInput").value = "";
     $("#confirmPasswordInput").value = "";
-    prepareChatSession();
+    await prepareChatSession();
     showToast(tx("registerSuccess"));
   }
 
@@ -1134,6 +1243,7 @@
       return;
     }
 
+    clearIdlePromptTimer();
     const submittedInputMethod = nextInputMethod;
     const userMessage = addMessage("user", text);
     input.value = "";
@@ -1168,6 +1278,7 @@
     state.reportAnalysis = "";
     updateMessageNode(pending, replyMessage.text, replyMessage.timestamp, replyMessage.meta);
     updateExportState();
+    restartIdlePrompts();
   }
 
   function renderPendingMessage() {
@@ -1311,6 +1422,7 @@
   }
 
   function clearConversation() {
+    clearIdlePromptTimer();
     state.messages = [];
     state.reportAnalysis = "";
     $("#chatLog").innerHTML = "";
@@ -1319,6 +1431,7 @@
   }
 
   function returnToEntry() {
+    clearIdlePromptTimer();
     clearConversation();
     showView("entryView");
   }
@@ -1658,6 +1771,7 @@
         input.dataset.inputMethod = "text";
         nextInputMethod = "text";
       }
+      restartIdlePrompts();
     });
 
     input.addEventListener("keydown", (event) => {

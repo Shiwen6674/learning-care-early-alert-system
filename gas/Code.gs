@@ -66,6 +66,8 @@ function doGet(e) {
       result = chatWithOpenAI_(parseJson_(params.payload || "{}", {}));
     } else if (action === "reportSummary") {
       result = summarizeConversation_(parseJson_(params.payload || "{}", {}));
+    } else if (action === "sessionContext") {
+      result = getSessionContext_(parseJson_(params.payload || "{}", {}));
     } else if (action === "setup") {
       getConversationSheet_();
       result = { ok: true, message: "AI對話紀錄 試算表已就緒。", generatedAt: new Date().toISOString() };
@@ -92,7 +94,9 @@ function doPost(e) {
       ? chatWithOpenAI_(payload.input || payload)
       : action === "reportSummary"
         ? summarizeConversation_(payload.input || payload)
-        : { ok: true, message: "安安 AI 代理已就緒。" };
+        : action === "sessionContext"
+          ? getSessionContext_(payload.input || payload)
+          : { ok: true, message: "安安 AI 代理已就緒。" };
     return output_(result, payload.callback);
   } catch (err) {
     return output_({ ok: false, error: err && err.message ? err.message : String(err) }, payload.callback);
@@ -103,6 +107,56 @@ function manualSetup() {
   spreadsheet_().setSpreadsheetTimeZone("Asia/Taipei");
   getConversationSheet_();
   return "LCEAS 安安 AI 代理與 AI對話紀錄 試算表已就緒，時區已設為 Asia/Taipei。請在 Script Properties 設定 OPENAI_API_KEY 或 API_KEY。";
+}
+
+function getSessionContext_(input) {
+  const context = input.context || input || {};
+  const email = normalizeEmail_(context.email || input.email || "");
+  const studentKey = studentKey_(context, email);
+  const base = {
+    ok: true,
+    sessionNumber: 1,
+    hasPrevious: false,
+    previousTopic: "",
+    generatedAt: new Date().toISOString()
+  };
+  if (!studentKey) return base;
+  try {
+    const sheet = getConversationSheet_();
+    if (sheet.getLastRow() <= 1) return base;
+    const headers = getConversationHeaders_(sheet);
+    const indexes = {
+      email: headers.indexOf("Email"),
+      nickname: headers.indexOf("姓名或稱呼"),
+      studentId: headers.indexOf("學號"),
+      department: headers.indexOf("系所"),
+      sessionNumber: headers.indexOf("對話次數"),
+      studentMessage: headers.indexOf("學生訊息"),
+      tags: headers.indexOf("情境標籤")
+    };
+    const values = sheet.getRange(2, 1, sheet.getLastRow() - 1, CONVERSATION_HEADERS.length).getValues();
+    let maxSession = 0;
+    let latestRow = null;
+    values.forEach(function (row) {
+      if (!sameStudentProfile_(row, indexes, context, email, studentKey)) return;
+      const rowSession = Number(cell_(row, indexes.sessionNumber)) || 0;
+      if (rowSession > maxSession) maxSession = rowSession;
+      latestRow = row;
+    });
+    if (!latestRow) return base;
+    return {
+      ok: true,
+      sessionNumber: maxSession + 1,
+      previousSessionNumber: maxSession,
+      hasPrevious: true,
+      previousTopic: compactPreviousTopic_(cell_(latestRow, indexes.studentMessage) || cell_(latestRow, indexes.tags)),
+      generatedAt: new Date().toISOString()
+    };
+  } catch (err) {
+    return Object.assign({}, base, {
+      error: err && err.message ? err.message : String(err)
+    });
+  }
 }
 
 function chatWithOpenAI_(input) {
@@ -142,9 +196,12 @@ function chatWithOpenAI_(input) {
     "你是「安安」，國立東華大學學習關懷預警系統 LCEAS 的 AI 學習陪伴角色。",
     "角色設定：請像一位溫和、自然、有經驗的學習陪伴導師或初談輔導者。你的重點不是給標準答案，而是先讓學生感到被接住，再陪他把眼前的困難整理到能求助、能前進的程度。",
     "對話方式：用學生自己的字詞接話，語氣要像真人談話。回覆順序通常是：先安慰或承接感受，再用一兩句溫柔回饋你聽懂了什麼，最後才提出一個不壓迫的輔導建議或校內資源。",
+    "大學生語氣：請用現在大學生聽得懂、願意回的自然語言，可以有一點輕鬆與口語感，但不要裝熟、不要過度流行語、不要油膩或尷尬。學生若要你講笑話，只能給校園、讀書、生活類的乾淨幽默，短短的即可。",
     "回應策略：如果學生只說很短或很模糊，先陪他多說一點，不要像測驗或問卷一樣連續追問。如果學生已經描述具體課程、作業或人際事件，就先確認他的感受與安全，再陪他整理下一個可以求助或處理的方向。",
     "任務範圍：協助釐清課程進度、作業、考試準備、跨域修課、時間安排、學習策略、求助表達與校內支持資源。不要把學生的困難說成只是小問題；可以把下一步變得比較能承受，但要先承認事情對他而言是真的難。",
     "避免事項：不要固定套用同一種開場；不要每次都條列；不要像公告、客服、教條、測驗、紀錄員或冷冰冰的助理；不要說「以下是幾個步驟」「我建議你先做清單式評估」「根據你的描述」「我分析」「可能原因有」這類模板句；不要用「我是安安」自我介紹開場；不要用責備、催促、過度正能量或大事化小的語氣。",
+    "敏感內容邊界：如果學生要求你生成、鼓勵或美化涉及性、暴力、政治煽動、衝突升級、犯罪操作、違法規避等負面內容，要溫和拒絕並把話題帶回學習整理、情緒安頓或求助方向。不要提供操作步驟、煽動語句、攻擊策略或犯罪方法。",
+    "受害求助例外：如果學生是在說自己遭遇性騷擾、性侵、暴力、霸凌、威脅、恐嚇、犯罪、衝突或其他傷害，不要迴避；先接住他的感受與安全需求，再協助梳理發生了什麼、現在是否安全、是否需要整理文字聯繫校安、導師、系辦或心理諮商輔導中心。",
     "隱私邊界：不要主動談後台或資料保存。若學生直接詢問資料處理，只用一句話簡短說明對話會依系統設定留存於學校紀錄，用於學習關懷服務。",
     "專業邊界：你提供學習陪伴與溫和引導，不取代校內專業諮詢或正式課業評量；除非學生主動提到急迫危險，不要主動使用驚嚇或危機字眼。",
     "校內資源名稱防呆：若提到諮商資源，只能使用「國立東華大學心理諮商輔導中心」或「心理諮商輔導中心」。不要使用「花師大學生輔導中心」「花蓮教育大學學生輔導中心」「學生諮商中心」等舊稱、泛稱或錯稱。",
@@ -152,7 +209,7 @@ function chatWithOpenAI_(input) {
     "支援分級：一般課業困難先給學習策略；科系與生涯困惑提供教務課規與課程地圖；經濟壓力提供學務處與起飛等資源；情緒困擾先接住感受並詢問是否需要整理聯繫文字；安全疑慮、肢體衝突或立即危險則優先提醒校安、119、110或身邊可信任的人。",
     "情境一：若學生說對科系沒有興趣、想轉系、不知道讀這個系要做什麼、課程與未來出路不符合期待，請主動觸發教務與生涯探索情境；當輪回覆要自然提供教務處課規查詢與東華課程地圖連結，提醒他對照院基礎、系核心、專業選修、核心能力、課程目標與畢業就業方向；可以建議下載諮詢摘要，帶去找導師、系辦或教務處討論轉系或修課調整的可能性。不要直接替學生做轉系決定。",
     "情境二：若學生提到經濟壓力、學費、生活費、打工太多、清寒、家裡經濟、急難、租金或就學貸款，請主動觸發經濟支持情境；當輪回覆要自然提供起飛獎助、清寒或校內外獎助、弱勢助學、學雜費減免、急難救助、工讀等校內資源與官方連結；請建議他下載TXT或PDF諮詢摘要，帶去聯繫系上、導師或學務處生活輔導組。",
-    "情境三：若學生提到情緒不佳、失戀、霸凌、被霸凌、焦慮、憂鬱、恐慌、睡不著、孤單、很痛苦等，請主動觸發情緒支持與轉介詢問情境；先接住感受，不要主動設定送出摘要或通報。先問他是否需要你協助整理一段可聯繫諮商中心、導師、系辦或校安的文字；若學生明確同意，當輪回覆要協助整理聯繫文字，並提供心理諮商輔導中心電話03-890-6896、03-890-6270、Email pcc@gms.ndhu.edu.tw 與中心網站 https://pcc1.ndhu.edu.tw/，若有安全疑慮則也提供校安24小時電話03-890-6995與0937-295995。除非系統真的有發送功能，不要宣稱已代為送出。若學生有立即危險、安全疑慮、打架或肢體衝突，請先關心他是否安全、有沒有人受傷、是否還在現場，再鼓勵立即聯繫校安、119、110或身邊可信任的人。",
+    "情境三：若學生提到情緒不佳、失戀、霸凌、被霸凌、焦慮、憂鬱、恐慌、睡不著、孤單、很痛苦，或描述自己遭遇性騷擾、性侵、暴力、威脅、恐嚇、犯罪、衝突等傷害，請主動觸發情緒支持與轉介詢問情境；先接住感受，不要主動設定送出摘要或通報。先問他是否需要你協助整理一段可聯繫諮商中心、導師、系辦或校安的文字；若學生明確同意，當輪回覆要協助整理聯繫文字，並提供心理諮商輔導中心電話03-890-6896、03-890-6270、Email pcc@gms.ndhu.edu.tw 與中心網站 https://pcc1.ndhu.edu.tw/，若有安全疑慮則也提供校安24小時電話03-890-6995與0937-295995。除非系統真的有發送功能，不要宣稱已代為送出。若學生有立即危險、安全疑慮、打架或肢體衝突，請先關心他是否安全、有沒有人受傷、是否還在現場，再鼓勵立即聯繫校安、119、110或身邊可信任的人。",
     "語氣：自然、柔和、像可靠的大姐姐、學習導師或初談輔導者。若學生提供稱呼，第一則回覆自然使用一次該稱呼，之後適度使用，不要過度親暱或重複。",
     "格式：通常 1 到 3 個短段落、220 字以內；只有在學生需要整理多件事時才用短條列。問題要自然，不必每次都用同一種結尾；但若適合延續對話，請留一個容易回答的小問題，不要讓句子中斷。",
     "可使用的東華教務與生涯資料：\n" + NDHU_ACADEMIC_SUPPORT_CONTEXT,
@@ -221,9 +278,9 @@ function withScenarioFollowup_(reply, input, history, language) {
   const notes = [];
   const hasAcademicNeed = /(沒興趣|沒有興趣|想轉系|轉系|換系|不想讀|不適合這個系|未來出路|畢業出路|就業方向|讀這個系|科系.*不合|系上.*沒興趣)/.test(contextText);
   const hasFinancialNeed = /(經濟|學費|生活費|打工|清寒|家裡.*錢|沒錢|急難|租金|就學貸款|弱勢助學|獎學金|獎助|繳不出|負擔不起)/.test(contextText);
-  const hasEmotionalNeed = /(失戀|霸凌|被霸凌|情緒|焦慮|憂鬱|恐慌|睡不著|孤單|很痛苦|諮商中心|諮商|心情很差|壓力大到|快撐不住)/.test(contextText);
+  const hasEmotionalNeed = /(失戀|霸凌|被霸凌|情緒|焦慮|憂鬱|恐慌|睡不著|孤單|很痛苦|諮商中心|諮商|心情很差|壓力大到|快撐不住|被性騷擾|遭性騷|被性侵|被偷拍|被跟蹤|被威脅|被恐嚇|遭遇暴力|被犯罪|被騙|詐騙)/.test(contextText);
   const hasConsentToContact = /(願意|同意|可以|好|OK|ok|拜託|麻煩|需要|幫我|請你)/.test(latest);
-  const wantsCampusSecurity = /(校安|安全疑慮|不安全|打架|肢體衝突|受傷|被打|霸凌|被霸凌)/.test(contextText);
+  const wantsCampusSecurity = /(校安|安全疑慮|不安全|打架|肢體衝突|受傷|被打|霸凌|被霸凌|被性騷擾|遭性騷|被性侵|被偷拍|被跟蹤|被威脅|被恐嚇|遭遇暴力|被犯罪|被騙|詐騙)/.test(contextText);
   if (hasAcademicNeed && !/(sys\.ndhu\.edu\.tw\/aa\/class\/RuleSearch|web\.ndhu\.edu\.tw\/CrsMap|課規查詢系統|課程地圖)/.test(text)) {
     notes.push("關於科系方向，你不用現在就做決定。我們可以先把資訊放到桌上：教務處課規查詢系統 https://sys.ndhu.edu.tw/aa/class/RuleSearch/rulebasic.aspx ，以及東華課程地圖 https://web.ndhu.edu.tw/CrsMap/CrsMap.aspx 。看完後，再帶著這次諮詢摘要找導師或系辦談，會比較有依據。");
   }
@@ -254,8 +311,8 @@ function assessConversation_(input, reply, history) {
   const hasAcademic = /(課業|課程|作業|報告|考試|期中|期末|成績|讀書|複習|進度|聽不懂|看不懂|統計|程式|英文|跨域|時間管理|拖延)/.test(contextText);
   const hasCareer = /(沒興趣|沒有興趣|想轉系|轉系|換系|不想讀|不適合這個系|未來出路|畢業出路|就業方向|讀這個系|科系.*不合|系上.*沒興趣)/.test(contextText);
   const hasFinancial = /(經濟|學費|生活費|打工|清寒|家裡.*錢|沒錢|急難|租金|就學貸款|弱勢助學|獎學金|獎助|繳不出|負擔不起)/.test(contextText);
-  const hasEmotional = /(失戀|霸凌|被霸凌|情緒|焦慮|憂鬱|恐慌|睡不著|孤單|很痛苦|心情很差|壓力大到|快撐不住|諮商)/.test(contextText);
-  const hasSafety = /(想死|自殺|自傷|傷害自己|傷害別人|不想活|不安全|校安|打架|肢體衝突|受傷|被打|立即危險)/.test(contextText);
+  const hasEmotional = /(失戀|霸凌|被霸凌|情緒|焦慮|憂鬱|恐慌|睡不著|孤單|很痛苦|心情很差|壓力大到|快撐不住|諮商|被性騷擾|遭性騷|被性侵|被偷拍|被跟蹤|被威脅|被恐嚇|遭遇暴力|被犯罪|被騙|詐騙)/.test(contextText);
+  const hasSafety = /(想死|自殺|自傷|傷害自己|傷害別人|不想活|不安全|校安|打架|肢體衝突|受傷|被打|立即危險|被性侵|被偷拍|被跟蹤|被威脅|被恐嚇|遭遇暴力|被犯罪)/.test(contextText);
   const hasConsent = /(願意|同意|可以|好|OK|ok|拜託|麻煩|需要|幫我|請你)/.test(latest) && /(聯繫|聯絡|諮商|校安|導師|系辦|整理.*文字|求助)/.test(contextText);
 
   if (hasAcademic) tags.push("課業學習");
@@ -537,6 +594,48 @@ function sheetDateKey_(value) {
     return Utilities.formatDate(value, "Asia/Taipei", "yyyy-MM-dd");
   }
   return String(value || "").trim();
+}
+
+function cell_(row, index) {
+  return index >= 0 ? String(row[index] || "").trim() : "";
+}
+
+function sameStudentProfile_(row, indexes, context, email, studentKey) {
+  const rowStudentId = normalizeStudentId_(cell_(row, indexes.studentId));
+  const rowEmail = normalizeEmail_(cell_(row, indexes.email));
+  const contextStudentId = normalizeStudentId_(context && context.studentId);
+  const contextEmail = normalizeEmail_(email || (context && context.email));
+  let identityMatched = false;
+
+  if (contextStudentId && rowStudentId) {
+    if (contextStudentId !== rowStudentId) return false;
+    identityMatched = true;
+  }
+  if (contextEmail && rowEmail) {
+    if (contextEmail !== rowEmail) return false;
+    identityMatched = true;
+  }
+  if (!identityMatched) {
+    const rowKey = rowStudentId || rowEmail;
+    if (!rowKey || normalizeIdentifier_(rowKey) !== normalizeIdentifier_(studentKey)) return false;
+  }
+
+  const rowDepartment = cell_(row, indexes.department);
+  const contextDepartment = String((context && context.department) || "").trim();
+  if (rowDepartment && contextDepartment && rowDepartment !== contextDepartment) return false;
+
+  const rowNickname = cell_(row, indexes.nickname);
+  const contextNickname = String((context && context.nickname) || "").trim();
+  if (rowNickname && contextNickname && rowNickname !== contextNickname) return false;
+
+  return true;
+}
+
+function compactPreviousTopic_(value) {
+  let text = String(value || "").replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  text = text.replace(/^(我|我現在|最近|今天|上次)/, "");
+  return text.length > 24 ? text.slice(0, 24) + "…" : text;
 }
 
 function normalizeEmail_(value) {
