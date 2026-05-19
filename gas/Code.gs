@@ -177,6 +177,7 @@ function chatWithOpenAI_(input) {
   const context = input.context || {};
   const language = normalizeLanguage_(input.language || context.language || "zh");
   const replyLanguage = languageInstruction_(language);
+  const replyLanguageRule = languageRule_(language);
   const email = normalizeEmail_(context.email || input.email || "");
   const studentKey = studentKey_(context, email);
   const turnLimit = DAILY_TURN_LIMIT;
@@ -204,6 +205,7 @@ function chatWithOpenAI_(input) {
   ].filter(Boolean).join("；");
 
   const prompt = [
+    replyLanguageRule,
     "你是「安安」，國立東華大學學習關懷預警系統 LCEAS 的 AI 學習陪伴角色。",
     "角色設定：請像一位溫和、自然、有經驗的學習陪伴導師或初談輔導者。你的重點不是給標準答案，而是先讓學生感到被接住，再陪他把眼前的困難整理到能求助、能前進的程度。",
     "對話方式：用學生自己的字詞接話，語氣要像真人談話。回覆順序通常是：先安慰或承接感受，再用一兩句溫柔回饋你聽懂了什麼，最後才提出一個不壓迫的輔導建議或校內資源。",
@@ -216,7 +218,7 @@ function chatWithOpenAI_(input) {
     "隱私邊界：不要主動談後台或資料保存。若學生直接詢問資料處理，只用一句話簡短說明對話會依系統設定留存於學校紀錄，用於學習關懷服務。",
     "專業邊界：你提供學習陪伴與溫和引導，不取代校內專業諮詢或正式課業評量；除非學生主動提到急迫危險，不要主動使用驚嚇或危機字眼。",
     "校內資源名稱防呆：若提到諮商資源，只能使用「國立東華大學心理諮商輔導中心」或「心理諮商輔導中心」。不要使用「花師大學生輔導中心」「花蓮教育大學學生輔導中心」「學生諮商中心」等舊稱、泛稱或錯稱。",
-    "回覆語言：請使用" + replyLanguage + "回覆。學校單位名稱、官方連結與必要專有名詞可以保留中文，並以" + replyLanguage + "簡短說明。",
+    "回覆語言：請使用" + replyLanguage + "回覆。此規則優先於學生前一輪語言、最近對話語言與校內資料語言。學校單位名稱、官方連結與必要專有名詞可以保留中文，其他說明必須使用" + replyLanguage + "。",
     "支援分級：課業、修課、選課、成績、學籍、畢業門檻等問題提供教務處相關單位且必附電話；科系與生涯困惑提供教務課規、課程地圖、課務組或註冊組電話；校園生活、住宿、社團、健康、校安等提供學務處或相關單位且必附電話；經濟壓力提供學務處生活輔導組、起飛、急難救助且必附電話；情緒或感情困擾提供心理諮商輔導中心且必附電話與Email；安全疑慮、肢體衝突或立即危險則優先提醒校安、119、110或身邊可信任的人。",
     "單位資訊規則：只要你建議學生聯繫某個校內單位，就必須提供明確單位名稱、電話，能提供Email或官方網址時也要附上。不要只寫「找教務處」「找學務處」「找諮商中心」。若資料中沒有電話，寧可提供更上位且已知電話的單位，不要編造。",
     "情境一：若學生提到課業、修課、選課、課規、加退選、停修、校際選課、學分數、成績、學籍、畢業資格、在學證明、轉系或不知道讀這個系要做什麼，請主動觸發教務與學習支持情境；當輪回覆要自然提供教務處課務組電話03-890-6121~6126、Email course@gms.ndhu.edu.tw，或註冊組電話03-890-6112~6117，並依問題附課規查詢、課程地圖或證件系統連結。不要直接替學生做轉系或修課決定。",
@@ -239,7 +241,7 @@ function chatWithOpenAI_(input) {
     input: [
       {
         role: "system",
-        content: [{ type: "input_text", text: "請使用" + replyLanguage + "回覆。你是安安，國立東華大學 LCEAS 的溫和學習陪伴與初談輔導角色。回覆要像真人接話：先安慰，再回饋你聽懂的處境，最後才輕輕提出可行建議；避免固定模板、測驗感、客服語氣、公告語氣、生硬條列、分析報告口吻與大事化小。" }]
+        content: [{ type: "input_text", text: replyLanguageRule + "\n你是安安，國立東華大學 LCEAS 的溫和學習陪伴與初談輔導角色。回覆要像真人接話：先安慰，再回饋你聽懂的處境，最後才輕輕提出可行建議；避免固定模板、測驗感、客服語氣、公告語氣、生硬條列、分析報告口吻與大事化小。" }]
       },
       {
         role: "user",
@@ -262,6 +264,7 @@ function chatWithOpenAI_(input) {
   const data = JSON.parse(response.getContentText() || "{}");
   if (status >= 300) throw new Error(data.error && data.error.message ? data.error.message : "OpenAI 回覆失敗");
   let reply = withScenarioFollowup_(extractOutputText_(data), input, history, language);
+  reply = ensureReplyLanguage_(reply, language, apiKey, model, replyLanguage);
   if (!reply) throw new Error("OpenAI 未回傳可顯示的文字。");
   const assessment = assessConversation_(input, reply, history);
   reply = withDailyLimitReminder_(reply, assessment, currentDailyCount + 1, turnLimit);
@@ -283,7 +286,6 @@ function chatWithOpenAI_(input) {
 
 function withScenarioFollowup_(reply, input, history, language) {
   const text = String(reply || "").trim();
-  if (normalizeLanguage_(language) !== "zh") return text;
   const latest = String(input.message || "");
   const contextText = [
     latest,
@@ -320,6 +322,59 @@ function withScenarioFollowup_(reply, input, history, language) {
       : "你可以先這樣傳給諮商中心或導師：「您好，我最近因為情緒或人際狀況，已經影響到學習和生活，想預約談一談，也想知道可以怎麼獲得協助。」東華心理諮商輔導中心電話是03-890-6896、03-890-6270，Email pcc@gms.ndhu.edu.tw，網站 https://pcc1.ndhu.edu.tw/ 。若有立即安全疑慮，請優先聯繫校安24小時電話03-890-6995或0937-295995。");
   }
   return [text].concat(notes).filter(Boolean).join("\n\n");
+}
+
+function ensureReplyLanguage_(reply, language, apiKey, model, replyLanguage) {
+  const text = String(reply || "").trim();
+  if (!text || !needsLanguageRepair_(text, language)) return text;
+  const rule = languageRule_(language);
+  const payload = {
+    model: model,
+    input: [
+      {
+        role: "system",
+        content: [{ type: "input_text", text: rule + "\nRewrite the assistant reply so it follows the selected interface language. Preserve the supportive tone, NDHU unit names, phone numbers, emails, and links. Do not add new facts." }]
+      },
+      {
+        role: "user",
+        content: [{ type: "input_text", text: text }]
+      }
+    ],
+    reasoning: { effort: "minimal" },
+    text: { verbosity: "low" },
+    max_output_tokens: 1200
+  };
+
+  try {
+    const response = UrlFetchApp.fetch("https://api.openai.com/v1/responses", {
+      method: "post",
+      contentType: "application/json",
+      headers: { Authorization: "Bearer " + apiKey },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    });
+    const data = JSON.parse(response.getContentText() || "{}");
+    const repaired = extractOutputText_(data).trim();
+    return repaired || text;
+  } catch (err) {
+    return text;
+  }
+}
+
+function needsLanguageRepair_(text, language) {
+  const lang = normalizeLanguage_(language);
+  if (lang === "zh") return false;
+  const content = String(text || "");
+  const cjkCount = (content.match(/[\u3400-\u9fff]/g) || []).length;
+  if (lang === "ja") {
+    const kanaCount = (content.match(/[\u3040-\u30ff]/g) || []).length;
+    return cjkCount > 20 && kanaCount < 3;
+  }
+  if (lang === "th") {
+    const thaiCount = (content.match(/[\u0e00-\u0e7f]/g) || []).length;
+    return cjkCount > 12 && thaiCount < 6;
+  }
+  return cjkCount > Math.max(12, content.length * 0.12);
 }
 
 function assessConversation_(input, reply, history) {
@@ -682,6 +737,20 @@ function normalizeLanguage_(value) {
 
 function languageInstruction_(value) {
   return LANGUAGE_INSTRUCTIONS[normalizeLanguage_(value)] || LANGUAGE_INSTRUCTIONS.zh;
+}
+
+function languageRule_(value) {
+  const language = normalizeLanguage_(value);
+  const rules = {
+    zh: "語言鎖定：請全程使用繁體中文回覆。",
+    en: "LANGUAGE LOCK: Reply in English only. Do not answer in Chinese even if the student, profile, or conversation history is Chinese. NDHU unit names may remain in Traditional Chinese, but every explanation and counseling sentence must be in English.",
+    ja: "言語固定：日本語で回答してください。会話履歴が中国語でも中国語で返答しないでください。東華大学の部署名は必要に応じて繁体字中国語のまま残してもかまいませんが、説明文は日本語にしてください。",
+    ms: "KUNCI BAHASA: Jawab dalam Bahasa Melayu sahaja. Jangan jawab dalam bahasa Cina walaupun sejarah perbualan menggunakan bahasa Cina. Nama unit NDHU boleh dikekalkan dalam Cina Tradisional jika perlu, tetapi penerangan mesti dalam Bahasa Melayu.",
+    th: "ล็อกภาษา: ตอบเป็นภาษาไทยเท่านั้น อย่าตอบเป็นภาษาจีน แม้ประวัติการสนทนาจะเป็นภาษาจีน ชื่อหน่วยงานของ NDHU อาจคงภาษาจีนตัวเต็มไว้ได้ แต่คำอธิบายต้องเป็นภาษาไทย",
+    id: "KUNCI BAHASA: Jawab hanya dalam Bahasa Indonesia. Jangan menjawab dalam bahasa Mandarin meskipun riwayat percakapan menggunakan bahasa Mandarin. Nama unit NDHU boleh tetap dalam Aksara Tionghoa Tradisional bila perlu, tetapi penjelasan harus dalam Bahasa Indonesia.",
+    vi: "KHÓA NGÔN NGỮ: Chỉ trả lời bằng tiếng Việt. Không trả lời bằng tiếng Trung ngay cả khi lịch sử trò chuyện bằng tiếng Trung. Tên đơn vị NDHU có thể giữ chữ Hoa phồn thể khi cần, nhưng phần giải thích phải bằng tiếng Việt."
+  };
+  return rules[language] || rules.zh;
 }
 
 function studentKey_(context, email) {

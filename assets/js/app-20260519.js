@@ -1308,7 +1308,7 @@
       }));
     const payload = {
       message: text,
-      context: state.profile,
+      context: Object.assign({}, state.profile, { language: state.language }),
       history,
       clientTime: new Date().toISOString(),
       inputMethod,
